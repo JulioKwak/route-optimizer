@@ -1,0 +1,22 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; }
+.layout { display: grid; grid-template-columns: 360px 1fr; min-height: 100vh; }
+.left { padding: 16px; border-right: 1px solid #e5e5e5; }
+.right { padding: 16px; }
+.hint { color: #666; font-size: 14px; margin-top: 6px; }
+
+.row { display: grid; grid-template-columns: 110px 1fr 42px; gap: 8px; margin: 8px 0; }
+.row input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; }
+.row button { border: 1px solid #ddd; background: #fff; border-radius: 10px; cursor: pointer; }
+
+.actions { display: flex; gap: 8px; margin-top: 12px; }
+.actions button { padding: 10px 12px; border-radius: 12px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+.actions button:hover { background: #f7f7f7; }
+
+.topbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.topbar button { padding: 10px 12px; border-radius: 12px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+.topbar button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.msg { margin-top: 12px; color: #b00020; font-size: 14px; }
+.result { border: 1px solid #eee; border-radius: 14px; padding: 12px; }
+.note { margin-top: 12px; color: #666; font-size: 13px; }
