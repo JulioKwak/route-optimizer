@@ -1,32 +1,56 @@
 * { box-sizing: border-box; }
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
 }
+
 .layout { display: grid; grid-template-columns: 360px 1fr; min-height: 100vh; }
 .left { padding: 16px; border-right: 1px solid #e5e5e5; }
 .right { padding: 16px; }
-.hint { color: #666; font-size: 14px; margin-top: 6px; }
 
-/* 입력 행 */
-.row {
+.hint { color: #666; font-size: 14px; margin-top: 6px; }
+.msg { margin-top: 12px; color: #b00020; font-size: 14px; }
+
+/* 입력 행(번호 포함) */
+.row{
   display: grid;
-  grid-template-columns: 110px 1fr 42px;
+  grid-template-columns: 28px 110px 1fr 42px; /* 번호칸 + 고객번호 + 주소 + 삭제 */
   gap: 8px;
   margin: 8px 0;
   align-items: center;
 }
+.idxBadge{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  font-weight:700;
+  color:#444;
+}
+
 .row input {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 10px;
 }
+
 .row button {
   border: 1px solid #ddd;
   background: #fff;
   border-radius: 10px;
   cursor: pointer;
+}
+
+.row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 주소 변환 실패 표시 */
+.row.isError input { border-color: #d32f2f; }
+.rowErrorMsg{
+  grid-column: 2 / -1; /* 번호칸 제외하고 아래로 */
+  font-size: 12px;
+  color: #d32f2f;
+  margin-top: 2px;
 }
 
 /* 액션 버튼 */
@@ -40,7 +64,7 @@ body {
 }
 .actions button:hover { background: #f7f7f7; }
 
-/* 우측 상단(버튼 바) */
+/* 우측 버튼 바 */
 .topbar { display: flex; justify-content: flex-end; gap: 8px; margin: 8px 0 12px; }
 .topbar button {
   padding: 10px 12px;
@@ -51,11 +75,11 @@ body {
 }
 .topbar button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.msg { margin-top: 12px; color: #b00020; font-size: 14px; }
+/* 결과 */
 .result { border: 1px solid #eee; border-radius: 14px; padding: 12px; }
 .note { margin-top: 12px; color: #666; font-size: 13px; }
 
-/* ===== 로딩/진행률 ===== */
+/* 로딩/진행률 */
 .progressWrap {
   display: grid;
   grid-template-columns: 24px 1fr;
@@ -67,6 +91,7 @@ body {
   border-radius: 14px;
   background: #fafafa;
 }
+
 .spinner {
   width: 22px;
   height: 22px;
@@ -76,7 +101,12 @@ body {
   animation: spin 0.9s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.progressText { font-size: 13px; color: #333; margin-bottom: 6px; }
+
+.progressText {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 6px;
+}
 .progressBar {
   height: 8px;
   border-radius: 999px;
@@ -91,7 +121,7 @@ body {
   transition: width 180ms ease;
 }
 
-/* hidden 속성 강제 적용 */
+/* hidden 강제 */
 [hidden] { display: none !important; }
 
 /* 지도 */
@@ -132,41 +162,47 @@ body {
   background: #fff;
   cursor: pointer;
 }
+#copyBtn:hover { background: #f7f7f7; }
 #qr { display: flex; justify-content: center; }
 
-/* ===== 반응형 ===== */
+/* 반응형 */
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
   .left { border-right: 0; border-bottom: 1px solid #e5e5e5; }
   .right { padding-top: 12px; }
 }
 
-/* 휴대폰 */
 @media (max-width: 520px) {
   .left, .right { padding: 12px; }
   h1 { font-size: 20px; margin: 0 0 6px; }
   .hint { font-size: 12px; }
 
-  /* 입력행: 모바일에서는 2줄 배치 */
   .row{
-    grid-template-columns: 1fr 42px;
+    grid-template-columns: 28px 1fr 42px;
     grid-template-areas:
-      "customer del"
-      "address  address";
+      "idx customer del"
+      "idx address  address";
+    gap: 8px;
     align-items: center;
   }
+  .idxBadge{ grid-area: idx; }
 
-  /* ⚠️ 주의: nth-child는 DOM 구조가 바뀌면 깨질 수 있습니다.
-     현재 구조(고객번호 input, 주소 input, 삭제 button)에서만 정확합니다.
-     나중에 번호 배지(1.,2.,3.)를 넣을 예정이면 클래스 기반으로 바꾸는 게 안전합니다. */
-  .row input:nth-child(1) { grid-area: customer; }
-  .row input:nth-child(2) { grid-area: address; }
-  .row button { grid-area: del; height: 42px; }
+  /* row children order: idxBadge(1), customer input(2), address input(3), del button(4), (optional) errorMsg */
+  .row input:nth-child(2){ grid-area: customer; }
+  .row input:nth-child(3){ grid-area: address; }
+  .row button{ grid-area: del; height: 42px; }
 
   .actions { flex-direction: column; }
-  .actions button, .topbar button, #copyBtn { width: 100%; padding: 12px 14px; border-radius: 14px; }
-  .shareRow{ grid-template-columns: 1fr; }
-  .map{ height: 300px; }
+  .actions button,
+  .topbar button,
+  #copyBtn {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+
+  .shareRow { grid-template-columns: 1fr; }
+  .map { height: 300px; }
 
   .result ol { padding-left: 18px; }
 }
