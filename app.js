@@ -195,11 +195,16 @@ async function fetchRoutePath(orderedPoints) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ points: orderedPoints })
   });
-  const routeData = await routeRes.json().catch(() => ({}));
+
+  const text = await routeRes.text(); // 우선 raw 텍스트 확보
+  let routeData = {};
+  try { routeData = JSON.parse(text); } catch { routeData = { raw: text }; }
+
   if (!routeRes.ok || routeData.error) {
-    throw new Error(routeData.error || "route api failed");
+    console.error("ROUTE API FAIL:", routeRes.status, routeData);
+    throw new Error(routeData.error || `directions api error (HTTP ${routeRes.status})`);
   }
-  return routeData; // {path:[{lat,lng}...], summary...}
+  return routeData;
 }
 
 // ---------- Map ----------
