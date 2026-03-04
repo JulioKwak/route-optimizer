@@ -6,6 +6,9 @@ const addBtn = document.getElementById("addBtn");
 const optBtn = document.getElementById("optBtn");
 const naverBtn = document.getElementById("naverBtn");
 const resultList = document.getElementById("resultList");
+const progressWrap = document.getElementById("progressWrap");
+const progressText = document.getElementById("progressText");
+const progressBarFill = document.getElementById("progressBarFill");
 
 let state = {
   rows: [{ customer: "", address: "" }, { customer: "", address: "" }], // 시작 + 1개 기본
@@ -126,6 +129,17 @@ function isMobile() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
+function showProgress(text, pct) {
+  progressWrap.hidden = false;
+  progressText.textContent = text || "처리 중...";
+  if (typeof pct === "number") progressBarFill.style.width = `${pct}%`;
+}
+
+function hideProgress() {
+  progressWrap.hidden = true;
+  progressBarFill.style.width = "0%";
+}
+
 addBtn.addEventListener("click", () => {
   setMsg("");
   if (state.rows.length >= MAX) return setMsg(`최대 ${MAX}건까지 추가할 수 있습니다.`);
@@ -134,18 +148,18 @@ addBtn.addEventListener("click", () => {
 });
 
 optBtn.addEventListener("click", async () => {
-  setMsg("");
-  const err = validate();
-  if (err) return setMsg(err);
-
   try {
     optBtn.disabled = true;
-    optBtn.textContent = "좌표 변환 중...";
+    setMsg("");
+    showProgress("좌표 변환 준비 중...", 0);
 
-    // 1) 전체 주소 좌표 변환
     const coords = [];
-    for (let i = 0; i < state.rows.length; i++) {
+    const total = state.rows.length;
+
+    for (let i = 0; i < total; i++) {
       const addr = state.rows[i].address.trim();
+      showProgress(`좌표 변환 중... (${i + 1}/${total})`, Math.round((i / total) * 85));
+
       try {
         coords.push(await geocode(addr));
       } catch (e) {
@@ -153,9 +167,8 @@ optBtn.addEventListener("click", async () => {
       }
     }
 
-    optBtn.textContent = "경로 계산 중...";
+    showProgress("경로 계산 중...", 95);
 
-    // 2) 최적 순서 계산
     const order = optimizeOrderByNearest(coords);
 
     state.coords = coords;
@@ -166,12 +179,14 @@ optBtn.addEventListener("click", async () => {
 
     naverBtn.disabled = false;
     naverBtn.textContent = "네이버 지도 열기(다음 목적지)";
-    setMsg("");
+
+    showProgress("완료", 100);
+    setTimeout(hideProgress, 400);
   } catch (e) {
+    hideProgress();
     setMsg(e.message);
   } finally {
     optBtn.disabled = false;
-    optBtn.textContent = "경로 최적화";
   }
 });
 
