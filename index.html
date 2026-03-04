@@ -17,21 +17,33 @@
       <div class="actions">
         <button id="addBtn" type="button">+ 추가</button>
         <button id="optBtn" type="button">경로 최적화</button>
+        <button id="shareBtn" type="button">모바일로 보내기(QR/링크)</button>
       </div>
 
       <div id="msg" class="msg"></div>
+
       <div id="progressWrap" class="progressWrap" hidden>
-  <div class="spinner" aria-hidden="true"></div>
-  <div>
-    <div id="progressText" class="progressText">처리 중...</div>
-    <div class="progressBar"><div id="progressBarFill" class="progressBarFill"></div></div>
-  </div>
-</div>
+        <div class="spinner" aria-hidden="true"></div>
+        <div>
+          <div id="progressText" class="progressText">처리 중...</div>
+          <div class="progressBar"><div id="progressBarFill" class="progressBarFill"></div></div>
+        </div>
+      </div>
     </aside>
 
     <main class="right">
+      <div id="map" class="map"></div>
+
       <div class="topbar">
         <button id="naverBtn" type="button" disabled>네이버 지도 열기(다음 목적지)</button>
+      </div>
+
+      <div id="shareBox" class="shareBox" hidden>
+        <div class="shareRow">
+          <input id="shareUrl" readonly />
+          <button id="copyBtn" type="button">복사</button>
+        </div>
+        <div id="qr"></div>
       </div>
 
       <div class="result">
@@ -40,11 +52,13 @@
       </div>
 
       <div class="note">
-        지도(폴리라인)는 다음 단계에서 붙입니다. 우선 “순서 + 네이버지도 딥링크”부터 동작하게 만듭니다.
+        지도에는 최적화 경로가 표시됩니다. 모바일에서는 “다음 목적지” 버튼으로 네이버 지도 앱을 여세요.
       </div>
     </main>
   </div>
 
+  <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=ql4o2776tv"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
