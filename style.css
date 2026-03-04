@@ -121,3 +121,16 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "No
 }
 /* hidden 속성 강제 적용 */
 [hidden] { display: none !important; }
+
+.map{
+  width: 100%;
+  height: 360px;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  background: #f7f7f7;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 520px){
+  .map{ height: 300px; }
+}
