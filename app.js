@@ -1,76 +1,123 @@
+/* app.js - full */
+
 const MAX = 15;
 
+// DOM
 const rowsEl = document.getElementById("rows");
 const msgEl = document.getElementById("msg");
 const addBtn = document.getElementById("addBtn");
 const optBtn = document.getElementById("optBtn");
 const naverBtn = document.getElementById("naverBtn");
 const resultList = document.getElementById("resultList");
+
 const progressWrap = document.getElementById("progressWrap");
 const progressText = document.getElementById("progressText");
 const progressBarFill = document.getElementById("progressBarFill");
 
+// Share (optional, but assumed present)
+const shareBtn = document.getElementById("shareBtn");
+const shareBox = document.getElementById("shareBox");
+const shareUrlEl = document.getElementById("shareUrl");
+const copyBtn = document.getElementById("copyBtn");
+const qrEl = document.getElementById("qr");
+
+// Map
+let nmap = null;
+let routeLine = null;
+let markers = [];
+
+// State
 let state = {
   rows: [{ customer: "", address: "" }, { customer: "", address: "" }], // 시작 + 1개 기본
   optimized: null,   // 방문 순서(인덱스)
-  coords: null,      // [{lat,lng}]
+  coords: null,      // [{lat,lng}] rows와 같은 인덱스
   currentLeg: 0,     // 다음 구간
 };
 
-function renderRows() {
-  rowsEl.innerHTML = "";
-  state.rows.forEach((r, idx) => {
-    const row = document.createElement("div");
-    row.className = "row";
-
-    const customer = document.createElement("input");
-        // 모바일 입력 최적화(고객번호)
-    customer.autocomplete = "off";
-    customer.autocapitalize = "off";
-    customer.spellcheck = false;
-    customer.inputMode = "text"; // 숫자 키패드 방지
-    customer.placeholder = idx === 0 ? "시작(고객번호)" : "고객번호";
-    customer.value = r.customer;
-    customer.addEventListener("input", (e) => (state.rows[idx].customer = e.target.value));
-
-    const address = document.createElement("input");
-        // 모바일 입력 최적화(주소)
-    address.autocomplete = "street-address";
-    address.autocapitalize = "off";
-    address.spellcheck = false;
-    address.inputMode = "text"; // 숫자 키패드 방지
-    address.placeholder = idx === 0 ? "시작 주소(도로명 권장)" : "주소(도로명 권장)";
-    address.value = r.address;
-    address.addEventListener("input", (e) => (state.rows[idx].address = e.target.value));
-
-    const del = document.createElement("button");
-    del.textContent = "−";
-    del.title = "삭제";
-    del.disabled = state.rows.length <= 2 || idx === 0;
-    del.addEventListener("click", () => {
-      state.rows.splice(idx, 1);
-      renderRows();
-    });
-
-    row.appendChild(customer);
-    row.appendChild(address);
-    row.appendChild(del);
-    rowsEl.appendChild(row);
-  });
-}
-
+// ---------- Utils ----------
 function setMsg(text = "") {
   msgEl.textContent = text;
 }
 
+function isMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function showProgress(text, pct) {
+  if (!progressWrap) return;
+  progressWrap.hidden = false;
+  if (progressText) progressText.textContent = text || "처리 중...";
+  if (progressBarFill && typeof pct === "number") progressBarFill.style.width = `${pct}%`;
+}
+
+function hideProgress() {
+  if (!progressWrap) return;
+  progressWrap.hidden = true;
+  if (progressBarFill) progressBarFill.style.width = "0%";
+}
+
 function validate() {
-  if (!state.rows[0].address.trim()) return "시작 주소를 입력해 주세요.";
+  if (!state.rows[0]?.address?.trim()) return "시작 주소를 입력해 주세요.";
   for (let i = 1; i < state.rows.length; i++) {
     if (!state.rows[i].address.trim()) return `${i + 1}번째 주소가 비어 있습니다.`;
   }
   return null;
 }
 
+// ---------- Share (PC → Mobile) ----------
+function toBase64Url(str) {
+  const b64 = btoa(unescape(encodeURIComponent(str)));
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function fromBase64Url(b64url) {
+  const pad = "===".slice((b64url.length + 3) % 4);
+  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/") + pad;
+  return decodeURIComponent(escape(atob(b64)));
+}
+
+function buildShareUrl() {
+  const payload = { v: 1, rows: state.rows };
+  const encoded = toBase64Url(JSON.stringify(payload));
+  // hash 사용(서버로 전달 안 됨) → 공유용으로 안전/간단
+  return `${location.origin}${location.pathname}#data=${encoded}`;
+}
+
+function renderShare(url) {
+  if (!shareBox || !shareUrlEl || !qrEl) return;
+  shareBox.hidden = false;
+  shareUrlEl.value = url;
+
+  // QR 재생성
+  qrEl.innerHTML = "";
+  if (typeof QRCode !== "undefined") {
+    // eslint-disable-next-line no-undef
+    new QRCode(qrEl, { text: url, width: 200, height: 200 });
+  } else {
+    // QR 라이브러리 로드 실패 시
+    const p = document.createElement("div");
+    p.textContent = "QR 라이브러리를 불러오지 못했습니다. 링크 복사로 이용해 주세요.";
+    qrEl.appendChild(p);
+  }
+}
+
+function loadFromUrl() {
+  const hash = location.hash || "";
+  const m = hash.match(/data=([^&]+)/);
+  if (!m) return;
+
+  try {
+    const json = fromBase64Url(m[1]);
+    const payload = JSON.parse(json);
+    if (payload?.rows && Array.isArray(payload.rows)) {
+      state.rows = payload.rows.slice(0, MAX);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+// ---------- Geo / Route ----------
 async function geocode(address) {
   const res = await fetch("/geo", {
     method: "POST",
@@ -89,7 +136,7 @@ function dist2(a, b) {
   return dx * dx + dy * dy;
 }
 
-// 최근접 이웃(간단/빠름) : 8건이면 충분히 쓸만합니다.
+// 최근접 이웃
 function optimizeOrderByNearest(points) {
   const n = points.length;
   const visited = new Array(n).fill(false);
@@ -114,7 +161,139 @@ function optimizeOrderByNearest(points) {
   return order;
 }
 
-function renderResult(order) {
+async function fetchRoutePath(orderedPoints) {
+  const routeRes = await fetch("/route", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ points: orderedPoints })
+  });
+  const routeData = await routeRes.json().catch(() => ({}));
+  if (!routeRes.ok || routeData.error) {
+    throw new Error(routeData.error || "route api failed");
+  }
+  return routeData; // {path:[{lat,lng}...], summary...}
+}
+
+// ---------- Map ----------
+function ensureMap(centerLatLng) {
+  // naver.maps가 없는 경우(지도 SDK 미로드) 대비
+  if (typeof naver === "undefined" || !naver.maps) {
+    throw new Error("네이버 지도 SDK가 로드되지 않았습니다. index.html의 maps.js를 확인해 주세요.");
+  }
+
+  if (!nmap) {
+    nmap = new naver.maps.Map("map", {
+      center: new naver.maps.LatLng(centerLatLng.lat, centerLatLng.lng),
+      zoom: 12
+    });
+  } else {
+    nmap.setCenter(new naver.maps.LatLng(centerLatLng.lat, centerLatLng.lng));
+  }
+}
+
+function clearMap() {
+  if (routeLine) {
+    routeLine.setMap(null);
+    routeLine = null;
+  }
+  markers.forEach(m => m.setMap(null));
+  markers = [];
+}
+
+function drawRouteOnMap(pathLatLng, orderedPoints) {
+  ensureMap(orderedPoints[0]);
+  clearMap();
+
+  // 마커
+  orderedPoints.forEach((p, i) => {
+    const m = new naver.maps.Marker({
+      position: new naver.maps.LatLng(p.lat, p.lng),
+      map: nmap,
+      title: `${i + 1}`
+    });
+    markers.push(m);
+  });
+
+  // 폴리라인
+  const linePath = pathLatLng.map(p => new naver.maps.LatLng(p.lat, p.lng));
+  routeLine = new naver.maps.Polyline({
+    map: nmap,
+    path: linePath,
+    strokeWeight: 5
+  });
+
+  // fitBounds
+  const bounds = new naver.maps.LatLngBounds();
+  linePath.forEach(ll => bounds.extend(ll));
+  nmap.fitBounds(bounds, { top: 30, right: 30, bottom: 30, left: 30 });
+}
+
+// ---------- UI Render ----------
+function renderRows() {
+  rowsEl.innerHTML = "";
+
+  state.rows.forEach((r, idx) => {
+    const row = document.createElement("div");
+    row.className = "row";
+
+    // 번호(1.,2.,3.)
+    const badge = document.createElement("div");
+    badge.className = "idxBadge";
+    badge.textContent = `${idx + 1}.`;
+
+    const customer = document.createElement("input");
+    customer.placeholder = idx === 0 ? "시작(고객번호)" : "고객번호";
+    customer.value = r.customer;
+
+    // 모바일 입력 최적화(고객번호)
+    customer.autocomplete = "off";
+    customer.autocapitalize = "off";
+    customer.spellcheck = false;
+    customer.inputMode = "text";
+
+    customer.addEventListener("input", (e) => (state.rows[idx].customer = e.target.value));
+
+    const address = document.createElement("input");
+    address.placeholder = idx === 0 ? "시작 주소(도로명 권장)" : "주소(도로명 권장)";
+    address.value = r.address;
+
+    // 모바일 입력 최적화(주소)
+    address.autocomplete = "street-address";
+    address.autocapitalize = "off";
+    address.spellcheck = false;
+    address.inputMode = "text";
+
+    address.addEventListener("input", (e) => (state.rows[idx].address = e.target.value));
+
+    const del = document.createElement("button");
+    del.textContent = "−";
+    del.title = "삭제";
+    del.disabled = state.rows.length <= 2 || idx === 0;
+    del.addEventListener("click", () => {
+      state.rows.splice(idx, 1);
+      // 결과/지도 초기화
+      state.optimized = null;
+      state.coords = null;
+      state.currentLeg = 0;
+      naverBtn.disabled = true;
+      naverBtn.textContent = "네이버 지도 열기(다음 목적지)";
+      resultList.innerHTML = "";
+      clearMap();
+      renderRows();
+    });
+
+    // row 구성
+    row.appendChild(badge);
+    row.appendChild(customer);
+    row.appendChild(address);
+    row.appendChild(del);
+
+    rowsEl.appendChild(row);
+  });
+}
+
+async function renderResult(order) {
+  // 리스트
   resultList.innerHTML = "";
   order.forEach((idx, i) => {
     const r = state.rows[idx];
@@ -123,23 +302,15 @@ function renderResult(order) {
     li.textContent = `${i + 1}. [${label}] ${r.customer || "-"} / ${r.address}`;
     resultList.appendChild(li);
   });
+
+  // 지도 경로(Directions 15)
+  showProgress("지도 경로 생성 중...", 98);
+  const orderedPoints = order.map(i => state.coords[i]);
+  const routeData = await fetchRoutePath(orderedPoints);
+  drawRouteOnMap(routeData.path, orderedPoints);
 }
 
-function isMobile() {
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
-function showProgress(text, pct) {
-  progressWrap.hidden = false;
-  progressText.textContent = text || "처리 중...";
-  if (typeof pct === "number") progressBarFill.style.width = `${pct}%`;
-}
-
-function hideProgress() {
-  progressWrap.hidden = true;
-  progressBarFill.style.width = "0%";
-}
-
+// ---------- Events ----------
 addBtn.addEventListener("click", () => {
   setMsg("");
   if (state.rows.length >= MAX) return setMsg(`최대 ${MAX}건까지 추가할 수 있습니다.`);
@@ -149,7 +320,7 @@ addBtn.addEventListener("click", () => {
 
 optBtn.addEventListener("click", async () => {
   setMsg("");
-  hideProgress(); // 항상 초기화
+  hideProgress();
 
   const err = validate();
   if (err) {
@@ -159,9 +330,10 @@ optBtn.addEventListener("click", async () => {
 
   try {
     optBtn.disabled = true;
-    setMsg("");
+    naverBtn.disabled = true;
     showProgress("좌표 변환 준비 중...", 0);
 
+    // 좌표 변환(순차)
     const coords = [];
     const total = state.rows.length;
 
@@ -184,7 +356,7 @@ optBtn.addEventListener("click", async () => {
     state.optimized = order;
     state.currentLeg = 0;
 
-    renderResult(order);
+    await renderResult(order);
 
     naverBtn.disabled = false;
     naverBtn.textContent = "네이버 지도 열기(다음 목적지)";
@@ -218,20 +390,46 @@ naverBtn.addEventListener("click", () => {
   const fromName = encodeURIComponent(state.rows[fromIdx].customer || "출발");
   const toName = encodeURIComponent(state.rows[toIdx].customer || "도착");
 
-  // 모바일: 네이버지도 앱 딥링크
+  // 모바일: 네이버지도 앱 딥링크(다음 목적지)
   const deeplink =
     `nmap://route/car?` +
     `slat=${fromC.lat}&slng=${fromC.lng}&sname=${fromName}` +
     `&dlat=${toC.lat}&dlng=${toC.lng}&dname=${toName}`;
 
-  // PC: 네이버 지도 웹으로 목적지 검색(딥링크가 안 열릴 수 있음)
+  // PC: 네이버 지도 웹 검색
   const webUrl = `https://map.naver.com/v5/search/${encodeURIComponent(state.rows[toIdx].address)}`;
 
   window.location.href = isMobile() ? deeplink : webUrl;
 
-  // 사용자가 “도착 후” 다시 누르면 다음 구간으로 넘어가는 방식
+  // 다음 구간으로 이동
   state.currentLeg += 1;
 });
 
+// Share button (optional)
+if (shareBtn) {
+  shareBtn.addEventListener("click", () => {
+    setMsg("");
+
+    const err = validate();
+    if (err) return setMsg(err);
+
+    const url = buildShareUrl();
+    renderShare(url);
+  });
+}
+
+if (copyBtn && shareUrlEl) {
+  copyBtn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrlEl.value);
+      setMsg("링크를 복사했습니다.");
+    } catch {
+      setMsg("복사에 실패했습니다. 링크를 길게 눌러 복사해 주세요.");
+    }
+  });
+}
+
+// ---------- Init ----------
+loadFromUrl();
 renderRows();
 hideProgress();
