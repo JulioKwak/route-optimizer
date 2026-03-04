@@ -44,12 +44,21 @@ export async function onRequestPost({ request, env }) {
       },
     });
 
-    const data = await res.json().catch(() => ({}));
+const text = await res.text();
+let data = {};
+try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
-    if (!res.ok) {
-      // 에러 원인 확인용 detail 그대로 내려줌
-      return json({ error: "directions api error", status: res.status, detail: data }, res.status);
-    }
+if (!res.ok) {
+  return json(
+    {
+      error: "directions api error",
+      status: res.status,
+      requestUrl: url.toString(),
+      detail: data,
+    },
+    res.status
+  );
+}
 
     const route = data?.route?.traoptimal?.[0];
     const path = route?.path;
