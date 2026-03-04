@@ -21,11 +21,21 @@ function renderRows() {
     row.className = "row";
 
     const customer = document.createElement("input");
+        // 모바일 입력 최적화(고객번호)
+    customer.autocomplete = "off";
+    customer.autocapitalize = "off";
+    customer.spellcheck = false;
+    customer.inputMode = "text"; // 숫자 키패드 방지
     customer.placeholder = idx === 0 ? "시작(고객번호)" : "고객번호";
     customer.value = r.customer;
     customer.addEventListener("input", (e) => (state.rows[idx].customer = e.target.value));
 
     const address = document.createElement("input");
+        // 모바일 입력 최적화(주소)
+    address.autocomplete = "street-address";
+    address.autocapitalize = "off";
+    address.spellcheck = false;
+    address.inputMode = "text"; // 숫자 키패드 방지
     address.placeholder = idx === 0 ? "시작 주소(도로명 권장)" : "주소(도로명 권장)";
     address.value = r.address;
     address.addEventListener("input", (e) => (state.rows[idx].address = e.target.value));
