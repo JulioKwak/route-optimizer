@@ -148,6 +148,15 @@ addBtn.addEventListener("click", () => {
 });
 
 optBtn.addEventListener("click", async () => {
+  setMsg("");
+  hideProgress(); // 항상 초기화
+
+  const err = validate();
+  if (err) {
+    hideProgress();
+    return setMsg(err);
+  }
+
   try {
     optBtn.disabled = true;
     setMsg("");
@@ -225,3 +234,4 @@ naverBtn.addEventListener("click", () => {
 });
 
 renderRows();
+hideProgress();
