@@ -13,7 +13,7 @@ export async function onRequestPost(context) {
     }
 
     const url =
-      "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query=" +
+      "https://maps.apigw.ntruss.com/map-geocode/v2/geocode?query=" +
       encodeURIComponent(address);
 
     const res = await fetch(url, {
