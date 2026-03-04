@@ -1,6 +1,5 @@
-/* app.js - full */
-
 const MAX = 15;
+const CONCURRENCY = 4; // 병렬 지오코딩 동시 처리 수(8건 기준 4 추천)
 
 // DOM
 const rowsEl = document.getElementById("rows");
@@ -14,7 +13,7 @@ const progressWrap = document.getElementById("progressWrap");
 const progressText = document.getElementById("progressText");
 const progressBarFill = document.getElementById("progressBarFill");
 
-// Share (optional, but assumed present)
+// Share
 const shareBtn = document.getElementById("shareBtn");
 const shareBox = document.getElementById("shareBox");
 const shareUrlEl = document.getElementById("shareUrl");
@@ -26,17 +25,17 @@ let nmap = null;
 let routeLine = null;
 let markers = [];
 
-// State
 let state = {
   rows: [{ customer: "", address: "" }, { customer: "", address: "" }], // 시작 + 1개 기본
-  optimized: null,   // 방문 순서(인덱스)
-  coords: null,      // [{lat,lng}] rows와 같은 인덱스
-  currentLeg: 0,     // 다음 구간
+  optimized: null,    // 방문 순서(인덱스)
+  coords: null,       // [{lat,lng}] rows와 같은 인덱스
+  currentLeg: 0,      // 다음 구간
+  errorMap: {},       // { [rowIndex]: "에러 메시지" }
 };
 
 // ---------- Utils ----------
 function setMsg(text = "") {
-  msgEl.textContent = text;
+  if (msgEl) msgEl.textContent = text;
 }
 
 function isMobile() {
@@ -69,38 +68,31 @@ function toBase64Url(str) {
   const b64 = btoa(unescape(encodeURIComponent(str)));
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
-
 function fromBase64Url(b64url) {
   const pad = "===".slice((b64url.length + 3) % 4);
   const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/") + pad;
   return decodeURIComponent(escape(atob(b64)));
 }
-
 function buildShareUrl() {
   const payload = { v: 1, rows: state.rows };
   const encoded = toBase64Url(JSON.stringify(payload));
-  // hash 사용(서버로 전달 안 됨) → 공유용으로 안전/간단
   return `${location.origin}${location.pathname}#data=${encoded}`;
 }
-
 function renderShare(url) {
   if (!shareBox || !shareUrlEl || !qrEl) return;
   shareBox.hidden = false;
   shareUrlEl.value = url;
 
-  // QR 재생성
   qrEl.innerHTML = "";
   if (typeof QRCode !== "undefined") {
     // eslint-disable-next-line no-undef
     new QRCode(qrEl, { text: url, width: 200, height: 200 });
   } else {
-    // QR 라이브러리 로드 실패 시
     const p = document.createElement("div");
     p.textContent = "QR 라이브러리를 불러오지 못했습니다. 링크 복사로 이용해 주세요.";
     qrEl.appendChild(p);
   }
 }
-
 function loadFromUrl() {
   const hash = location.hash || "";
   const m = hash.match(/data=([^&]+)/);
@@ -129,6 +121,41 @@ async function geocode(address) {
   return { lat: Number(data.lat), lng: Number(data.lng) };
 }
 
+// 병렬 지오코딩
+async function geocodeAllParallel(addresses, concurrency, onProgress) {
+  const total = addresses.length;
+  const coords = new Array(total).fill(null);
+  const errors = {};
+
+  let done = 0;
+  let next = 0;
+
+  async function worker() {
+    while (true) {
+      const i = next++;
+      if (i >= total) return;
+
+      const addr = (addresses[i] || "").trim();
+      try {
+        coords[i] = await geocode(addr);
+      } catch (e) {
+        errors[i] = `${i + 1}번째 주소 변환 실패: "${addr}" (${e.message})`;
+      } finally {
+        done += 1;
+        const pct = Math.round((done / total) * 85);
+        onProgress?.(done, total, pct);
+      }
+    }
+  }
+
+  const w = Math.min(concurrency, total);
+  const workers = [];
+  for (let k = 0; k < w; k++) workers.push(worker());
+  await Promise.all(workers);
+
+  return { coords, errors };
+}
+
 // 거리 비교용(제곱거리)
 function dist2(a, b) {
   const dx = a.lat - b.lat;
@@ -147,6 +174,7 @@ function optimizeOrderByNearest(points) {
     const last = order[order.length - 1];
     let best = -1;
     let bestD = Infinity;
+
     for (let i = 1; i < n; i++) {
       if (visited[i]) continue;
       const d = dist2(points[last], points[i]);
@@ -176,7 +204,6 @@ async function fetchRoutePath(orderedPoints) {
 
 // ---------- Map ----------
 function ensureMap(centerLatLng) {
-  // naver.maps가 없는 경우(지도 SDK 미로드) 대비
   if (typeof naver === "undefined" || !naver.maps) {
     throw new Error("네이버 지도 SDK가 로드되지 않았습니다. index.html의 maps.js를 확인해 주세요.");
   }
@@ -228,7 +255,19 @@ function drawRouteOnMap(pathLatLng, orderedPoints) {
   nmap.fitBounds(bounds, { top: 30, right: 30, bottom: 30, left: 30 });
 }
 
-// ---------- UI Render ----------
+// ---------- UI ----------
+function resetResultAndNav() {
+  state.optimized = null;
+  state.coords = null;
+  state.currentLeg = 0;
+  if (resultList) resultList.innerHTML = "";
+  if (naverBtn) {
+    naverBtn.disabled = true;
+    naverBtn.textContent = "네이버 지도 열기(다음 목적지)";
+  }
+  clearMap();
+}
+
 function renderRows() {
   rowsEl.innerHTML = "";
 
@@ -236,7 +275,7 @@ function renderRows() {
     const row = document.createElement("div");
     row.className = "row";
 
-    // 번호(1.,2.,3.)
+    // 번호
     const badge = document.createElement("div");
     badge.className = "idxBadge";
     badge.textContent = `${idx + 1}.`;
@@ -245,25 +284,31 @@ function renderRows() {
     customer.placeholder = idx === 0 ? "시작(고객번호)" : "고객번호";
     customer.value = r.customer;
 
-    // 모바일 입력 최적화(고객번호)
     customer.autocomplete = "off";
     customer.autocapitalize = "off";
     customer.spellcheck = false;
     customer.inputMode = "text";
 
-    customer.addEventListener("input", (e) => (state.rows[idx].customer = e.target.value));
+    customer.addEventListener("input", (e) => {
+      state.rows[idx].customer = e.target.value;
+      state.errorMap[idx] = "";
+      row.classList.remove("isError");
+    });
 
     const address = document.createElement("input");
     address.placeholder = idx === 0 ? "시작 주소(도로명 권장)" : "주소(도로명 권장)";
     address.value = r.address;
 
-    // 모바일 입력 최적화(주소)
     address.autocomplete = "street-address";
     address.autocapitalize = "off";
     address.spellcheck = false;
     address.inputMode = "text";
 
-    address.addEventListener("input", (e) => (state.rows[idx].address = e.target.value));
+    address.addEventListener("input", (e) => {
+      state.rows[idx].address = e.target.value;
+      state.errorMap[idx] = "";
+      row.classList.remove("isError");
+    });
 
     const del = document.createElement("button");
     del.textContent = "−";
@@ -271,22 +316,25 @@ function renderRows() {
     del.disabled = state.rows.length <= 2 || idx === 0;
     del.addEventListener("click", () => {
       state.rows.splice(idx, 1);
-      // 결과/지도 초기화
-      state.optimized = null;
-      state.coords = null;
-      state.currentLeg = 0;
-      naverBtn.disabled = true;
-      naverBtn.textContent = "네이버 지도 열기(다음 목적지)";
-      resultList.innerHTML = "";
-      clearMap();
+      state.errorMap = {};
+      resetResultAndNav();
       renderRows();
     });
 
-    // row 구성
     row.appendChild(badge);
     row.appendChild(customer);
     row.appendChild(address);
     row.appendChild(del);
+
+    // 에러 표시
+    const errMsg = state.errorMap[idx];
+    if (errMsg) {
+      row.classList.add("isError");
+      const em = document.createElement("div");
+      em.className = "rowErrorMsg";
+      em.textContent = errMsg;
+      row.appendChild(em);
+    }
 
     rowsEl.appendChild(row);
   });
@@ -303,7 +351,7 @@ async function renderResult(order) {
     resultList.appendChild(li);
   });
 
-  // 지도 경로(Directions 15)
+  // 지도 경로
   showProgress("지도 경로 생성 중...", 98);
   const orderedPoints = order.map(i => state.coords[i]);
   const routeData = await fetchRoutePath(orderedPoints);
@@ -330,25 +378,28 @@ optBtn.addEventListener("click", async () => {
 
   try {
     optBtn.disabled = true;
-    naverBtn.disabled = true;
-    showProgress("좌표 변환 준비 중...", 0);
+    if (naverBtn) naverBtn.disabled = true;
 
-    // 좌표 변환(순차)
-    const coords = [];
-    const total = state.rows.length;
+    // 에러 초기화
+    state.errorMap = {};
+    renderRows();
 
-    for (let i = 0; i < total; i++) {
-      const addr = state.rows[i].address.trim();
-      showProgress(`좌표 변환 중... (${i + 1}/${total})`, Math.round((i / total) * 85));
+    showProgress("좌표 변환 중... (병렬)", 0);
 
-      try {
-        coords.push(await geocode(addr));
-      } catch (e) {
-        throw new Error(`${i + 1}번째 주소 변환 실패: "${addr}" (${e.message})`);
-      }
+    const addresses = state.rows.map(r => r.address || "");
+    const { coords, errors } = await geocodeAllParallel(
+      addresses,
+      CONCURRENCY,
+      (done, total, pct) => showProgress(`좌표 변환 중... (${done}/${total})`, pct)
+    );
+
+    if (Object.keys(errors).length > 0) {
+      state.errorMap = errors;
+      renderRows();
+      throw new Error("일부 주소의 좌표 변환에 실패했습니다. 빨간 표시된 행을 확인해 주세요.");
     }
 
-    showProgress("경로 계산 중...", 95);
+    showProgress("경로 계산 중...", 90);
 
     const order = optimizeOrderByNearest(coords);
 
@@ -358,8 +409,10 @@ optBtn.addEventListener("click", async () => {
 
     await renderResult(order);
 
-    naverBtn.disabled = false;
-    naverBtn.textContent = "네이버 지도 열기(다음 목적지)";
+    if (naverBtn) {
+      naverBtn.disabled = false;
+      naverBtn.textContent = "네이버 지도 열기(다음 목적지)";
+    }
 
     showProgress("완료", 100);
     setTimeout(hideProgress, 400);
@@ -390,26 +443,21 @@ naverBtn.addEventListener("click", () => {
   const fromName = encodeURIComponent(state.rows[fromIdx].customer || "출발");
   const toName = encodeURIComponent(state.rows[toIdx].customer || "도착");
 
-  // 모바일: 네이버지도 앱 딥링크(다음 목적지)
   const deeplink =
     `nmap://route/car?` +
     `slat=${fromC.lat}&slng=${fromC.lng}&sname=${fromName}` +
     `&dlat=${toC.lat}&dlng=${toC.lng}&dname=${toName}`;
 
-  // PC: 네이버 지도 웹 검색
   const webUrl = `https://map.naver.com/v5/search/${encodeURIComponent(state.rows[toIdx].address)}`;
 
   window.location.href = isMobile() ? deeplink : webUrl;
-
-  // 다음 구간으로 이동
   state.currentLeg += 1;
 });
 
-// Share button (optional)
+// Share
 if (shareBtn) {
   shareBtn.addEventListener("click", () => {
     setMsg("");
-
     const err = validate();
     if (err) return setMsg(err);
 
