@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>경로 최적화</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="left">
+      <h1>경로 최적화</h1>
+      <p class="hint">첫 번째 행은 시작지점입니다. (최대 15건)</p>
+
+      <div id="rows"></div>
+
+      <div class="actions">
+        <button id="addBtn" type="button">+ 추가</button>
+        <button id="optBtn" type="button">경로 최적화</button>
+      </div>
+
+      <div id="msg" class="msg"></div>
+    </aside>
+
+    <main class="right">
+      <div class="topbar">
+        <button id="naverBtn" type="button" disabled>네이버 지도 열기(다음 목적지)</button>
+      </div>
+
+      <div class="result">
+        <h2>최적화 결과</h2>
+        <ol id="resultList"></ol>
+      </div>
+
+      <div class="note">
+        지도(폴리라인)는 다음 단계에서 붙입니다. 우선 “순서 + 네이버지도 딥링크”부터 동작하게 만듭니다.
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
