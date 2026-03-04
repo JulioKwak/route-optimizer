@@ -20,3 +20,58 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "No
 .msg { margin-top: 12px; color: #b00020; font-size: 14px; }
 .result { border: 1px solid #eee; border-radius: 14px; padding: 12px; }
 .note { margin-top: 12px; color: #666; font-size: 13px; }
+/* ===== 모바일 최적화 ===== */
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr; /* 1컬럼 */
+  }
+  .left {
+    border-right: 0;
+    border-bottom: 1px solid #e5e5e5;
+  }
+  .right {
+    padding-top: 12px;
+  }
+}
+
+/* 더 작은 화면(휴대폰) */
+@media (max-width: 520px) {
+  .left, .right {
+    padding: 12px;
+  }
+
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  .hint { font-size: 12px; }
+
+  /* 입력 행을 2줄로: 고객번호/삭제, 주소는 아래 */
+  .row {
+    grid-template-columns: 1fr 42px;
+    grid-template-areas:
+      "customer del"
+      "address  address";
+    gap: 8px;
+    align-items: center;
+  }
+  .row input:nth-child(1) { grid-area: customer; }
+  .row input:nth-child(2) { grid-area: address; }
+  .row button { grid-area: del; height: 42px; }
+
+  /* 버튼을 모바일에서 크게 */
+  .actions {
+    flex-direction: column;
+  }
+  .actions button,
+  .topbar button {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+
+  /* 결과 리스트 가독성 */
+  .result {
+    padding: 12px;
+  }
+  .result ol {
+    padding-left: 18px;
+  }
+}
