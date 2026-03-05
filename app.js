@@ -31,6 +31,39 @@ const openExternalBtn = document.getElementById("openExternalBtn");
 const copyLinkBtn = document.getElementById("copyLinkBtn");
 const inAppHint = document.getElementById("inAppHint");
 
+// iOS 안내 모달
+const iosGuideModal = document.getElementById("iosGuideModal");
+const iosGuideClose = document.getElementById("iosGuideClose");
+const iosCopyLink = document.getElementById("iosCopyLink");
+const iosOpenAgain = document.getElementById("iosOpenAgain");
+
+function openIosGuideModal() {
+  if (!iosGuideModal) return;
+  iosGuideModal.hidden = false;
+}
+function closeIosGuideModal() {
+  if (!iosGuideModal) return;
+  iosGuideModal.hidden = true;
+}
+
+// 모달 닫기/버튼 이벤트 (한 번만 등록)
+if (iosGuideClose) iosGuideClose.addEventListener("click", closeIosGuideModal);
+if (iosGuideModal) {
+  iosGuideModal.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t && t.dataset && t.dataset.close) closeIosGuideModal();
+  });
+}
+if (iosCopyLink) {
+  iosCopyLink.addEventListener("click", async () => {
+    const ok = await copyText(location.href);
+    setMsg(ok ? "링크를 복사했습니다." : "복사 실패");
+  });
+}
+if (iosOpenAgain) {
+  iosOpenAgain.addEventListener("click", () => closeIosGuideModal());
+}
+
 // Map
 let nmap = null;
 let routeLine = null;
@@ -460,9 +493,8 @@ function showInAppBannerIfNeeded() {
       }
 
       if (isIOS()) {
-        // iOS는 강제 불가 → 안내 + 링크 복사
-        await copyText(url);
-        alert("현재 화면 우측 하단에 공유버튼(⬆︎) 클릭 후 ‘Safari에서 열기’를 선택하세요.\n(링크를 클립보드에 복사해두었습니다.)");
+        await copyText(url);      // 링크는 미리 복사
+        openIosGuideModal();      // ✅ 안내 이미지 모달 띄우기
         return;
       }
 
