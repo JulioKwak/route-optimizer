@@ -91,7 +91,22 @@
     </aside>
 
     <main class="right">
-      <div id="map" class="map"></div>
+      <div class="mapWrap">
+        <div id="map" class="map"></div>
+      
+        <!-- ✅ 지도 우측 카드 -->
+        <div id="routeCard" class="routeCard" hidden>
+          <div class="routeCardTitle">총 이동 예상</div>
+          <div class="routeCardRow">
+            <span class="routeCardLabel">시간</span>
+            <b id="cardTime">-</b>
+          </div>
+          <div class="routeCardRow">
+            <span class="routeCardLabel">거리</span>
+            <b id="cardDist">-</b>
+          </div>
+        </div>
+      </div>
 
       <!-- 버튼은 지도와 결과 사이에 -->
       <div class="midActions">
@@ -110,6 +125,12 @@
         PC에서 주소 입력 → “모바일로 보내기(QR/링크)”로 휴대폰에서 열고,
         모바일에서 “경로 최적화” 후 “네이버 지도 열기(다음 목적지)”로 내비게이션을 실행하세요.
       </div>
+
+      <div class="legBox">
+        <h3>구간별 예상</h3>
+        <ol id="legList" class="legList"></ol>
+      </div>
+      
     </main>
   </div>
 
