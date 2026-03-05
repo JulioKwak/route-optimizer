@@ -604,3 +604,5 @@ if (openExternalBtn) {
   // 카톡/인앱이면 배너 표시(외부 브라우저 유도)
   showInAppBannerIfNeeded();
 })();
+
+openExternalBtn && (openExternalBtn.onclick = () => alert("클릭됨"));
