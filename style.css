@@ -141,6 +141,33 @@ body {
   margin-bottom: 12px;
 }
 
+/* 지도-결과 사이 버튼 영역 */
+.midbar{
+  display:flex;
+  justify-content:flex-end; /* 우측 정렬 */
+  margin: 10px 0 12px;
+}
+
+#naverBtn{
+  height: 48px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
+
+#naverBtn:disabled{
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 모바일: 버튼 100% 폭 */
+@media (max-width: 520px){
+  .midbar{ justify-content: stretch; }
+  #naverBtn{ width:100%; height: 50px; }
+}
+
 /* 공유 박스(QR/링크) */
 .shareBox{
   border: 1px solid #eee;
