@@ -26,15 +26,14 @@ const copyMsgBtn = document.getElementById("copyMsgBtn");
 
 // In-app banner
 const inAppBanner = document.getElementById("inAppBanner");
-const openExternalBtn = document.getElementById("openExternalBtn");
+const openExternalBtn = document.getElementById("openExternalBtn"); // (iOS에서는 hidden)
 const copyLinkBtn = document.getElementById("copyLinkBtn");
 const inAppHint = document.getElementById("inAppHint");
 
-// ✅ iOS 인라인 안내(접기/펼치기)
+// ✅ iOS 인라인 안내(파란 글씨 토글만 사용)
 const iosGuideInline = document.getElementById("iosGuideInline");
 const iosGuideToggle = document.getElementById("iosGuideToggle");
 const iosGuidePanel = document.getElementById("iosGuidePanel");
-const iosInlineCopyLink = document.getElementById("iosInlineCopyLink");
 
 // Map
 let nmap = null;
@@ -145,13 +144,15 @@ function validate() {
 async function mapLimit(items, limit, worker) {
   const results = new Array(items.length);
   let idx = 0;
-  const runners = new Array(Math.min(limit, items.length)).fill(0).map(async () => {
-    while (true) {
-      const cur = idx++;
-      if (cur >= items.length) break;
-      results[cur] = await worker(items[cur], cur);
-    }
-  });
+  const runners = new Array(Math.min(limit, items.length))
+    .fill(0)
+    .map(async () => {
+      while (true) {
+        const cur = idx++;
+        if (cur >= items.length) break;
+        results[cur] = await worker(items[cur], cur);
+      }
+    });
   await Promise.all(runners);
   return results;
 }
@@ -435,31 +436,19 @@ async function copyText(text) {
   }
 }
 
-// ✅ iOS 인라인 안내(접기/펼치기) 제어
+// ✅ iOS 인라인 안내(파란 글씨 토글)
 function setIosGuideExpanded(expanded) {
   if (!iosGuideToggle || !iosGuidePanel) return;
-
   iosGuideToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
   iosGuidePanel.hidden = !expanded;
-
-  if (openExternalBtn) {
-    openExternalBtn.textContent = expanded
-      ? "Safari 안내 닫기"
-      : "Safari에서 열기 안내 보기";
-  }
+  // 토글 문구
+  iosGuideToggle.textContent = expanded ? "Safari에서 열기 안내 닫기" : "Safari에서 열기 안내 보기";
 }
 
 if (iosGuideToggle) {
   iosGuideToggle.addEventListener("click", () => {
     const expanded = iosGuideToggle.getAttribute("aria-expanded") === "true";
     setIosGuideExpanded(!expanded);
-  });
-}
-
-if (iosInlineCopyLink) {
-  iosInlineCopyLink.addEventListener("click", async () => {
-    const ok = await copyText(location.href);
-    setMsg(ok ? "링크를 복사했습니다." : "복사 실패");
   });
 }
 
@@ -472,11 +461,17 @@ function showInAppBannerIfNeeded() {
 
   if (isAndroid()) {
     if (inAppHint) inAppHint.textContent = "Android: 상단 “외부 브라우저로 열기(Chrome 권장)”를 사용하세요.";
-    if (openExternalBtn) openExternalBtn.textContent = "외부 브라우저로 열기";
+    if (openExternalBtn) {
+      openExternalBtn.hidden = false;
+      openExternalBtn.textContent = "외부 브라우저로 열기";
+    }
+    if (iosGuideInline) iosGuideInline.hidden = true;
   } else if (isIOS()) {
-    if (inAppHint) inAppHint.textContent = "iPhone: ‘Safari에서 열기’로 다시 열어야 정상 동작합니다.";
-    if (openExternalBtn) openExternalBtn.textContent = "Safari에서 열기 안내 보기";
-    if (iosGuideInline) iosGuideInline.hidden = false; // ✅ 인라인 섹션 노출
+    if (inAppHint) inAppHint.textContent = "iPhone: 공유(⬆︎) 버튼 → “Safari에서 열기”로 다시 열어주세요.";
+    // iOS에서는 회색 버튼 완전 숨김(HTML에 hidden 처리돼 있어도 안전하게 한 번 더)
+    if (openExternalBtn) openExternalBtn.hidden = true;
+
+    if (iosGuideInline) iosGuideInline.hidden = false;
     setIosGuideExpanded(false);
   } else {
     if (inAppHint) inAppHint.textContent = "인앱 브라우저에서는 일부 기능이 제한될 수 있습니다.";
@@ -489,31 +484,13 @@ function showInAppBannerIfNeeded() {
     };
   }
 
-  // ✅ 버튼 클릭은 onclick으로 강제(인앱에서 addEventListener 씹히는 경우 방지)
+  // Android/기타에서만 사용
   if (openExternalBtn) {
     openExternalBtn.onclick = async () => {
       const url = location.href;
 
-      if (isIOS()) {
-      
-        await copyText(url); // 편의: 링크 복사
-      
-        if (iosGuideInline) iosGuideInline.hidden = false;
-      
-        const expanded =
-          iosGuideToggle?.getAttribute("aria-expanded") === "true";
-      
-        setIosGuideExpanded(!expanded); // ← 토글
-      
-        if (!expanded) {
-          iosGuideInline?.scrollIntoView?.({
-            behavior: "smooth",
-            block: "start"
-          });
-        }
-      
-        return;
-      }
+      // iOS는 숨김이라 여기 들어올 일이 거의 없지만, 안전 가드
+      if (isIOS()) return;
 
       if (isAndroid()) {
         const intentUrl = makeChromeIntentUrl(url);
@@ -631,7 +608,7 @@ if (copyMsgBtn) {
     naverBtn.textContent = "경로 계산 후 활성화됩니다";
   }
 
-  // 인앱이면 안내(✅ iOS는 인라인 안내)
+  // 인앱이면 안내(✅ iOS는 파란 토글만)
   showInAppBannerIfNeeded();
 
   // initMap callback이 못 도는 경우(네이버 SDK 로딩 지연 대비)
