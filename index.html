@@ -26,32 +26,46 @@
         <div class="spinner" aria-hidden="true"></div>
         <div>
           <div id="progressText" class="progressText">처리 중...</div>
-          <div class="progressBar">
-            <div id="progressBarFill" class="progressBarFill"></div>
-          </div>
+          <div class="progressBar"><div id="progressBarFill" class="progressBarFill"></div></div>
         </div>
       </div>
     </aside>
 
     <main class="right">
-      <!-- 지도 -->
-      <div id="map" class="map"></div>
 
-      <!-- 네이버 지도 버튼 -->
+      <!-- ✅ 인앱 브라우저(카톡 등) 감지 시 노출되는 배너 -->
+      <div id="inAppBanner" class="inAppBanner" hidden>
+        <div class="inAppTitle">카카오톡(인앱)에서 열렸습니다</div>
+        <div class="inAppDesc">
+          네이버지도 앱 연결이 안 될 수 있어요. 가능하면 “외부 브라우저”로 열어주세요.
+        </div>
+        <div class="inAppBtns">
+          <button id="openExternalBtn" type="button">외부 브라우저로 열기</button>
+          <button id="copyLinkBtn" type="button">링크 복사</button>
+        </div>
+        <div class="inAppHint" id="inAppHint"></div>
+      </div>
+
       <div class="topbar">
+        <div id="map" class="map"></div>
         <button id="naverBtn" type="button" disabled>네이버 지도 열기(다음 목적지)</button>
       </div>
 
-      <!-- PC → 모바일 공유(QR/링크) -->
       <div id="shareBox" class="shareBox" hidden>
         <div class="shareRow">
           <input id="shareUrl" readonly />
-          <button id="copyBtn" type="button">복사</button>
+          <button id="copyBtn" type="button">링크 복사</button>
         </div>
+
+        <div class="shareHelp">
+          <div class="shareHelpTitle">카톡으로 보낼 안내 문구(권장)</div>
+          <textarea id="shareMsg" class="shareMsg" readonly></textarea>
+          <button id="copyMsgBtn" type="button">문구 복사</button>
+        </div>
+
         <div id="qr"></div>
       </div>
 
-      <!-- 결과 -->
       <div class="result">
         <h2>최적화 결과</h2>
         <ol id="resultList"></ol>
@@ -59,18 +73,17 @@
 
       <div class="note">
         PC에서 주소 입력 → “모바일로 보내기(QR/링크)”로 휴대폰에서 열고,
-        모바일에서는 “네이버 지도 열기(다음 목적지)”로 내비게이션을 실행하세요.
+        모바일에서는 “네이버 지도 열기(다음 목적지)”로 네비게이션을 실행하세요.
       </div>
     </main>
   </div>
 
-  <!-- 1) 네이버 지도 웹 SDK (지도/마커/폴리라인을 그리기 위해 필요) -->
-  <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=ql4o2776tv&submodules=geocoder&callback=initMap"></script>
+  <!-- 네이버 지도 SDK -->
+  <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=ql4o2776tv&submodules=geocoder"></script>
 
-  <!-- 2) QR 코드 생성 라이브러리 (QR을 쓸 때만 필요) -->
+  <!-- QRCode 라이브러리(share 기능) -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
-  <!-- 3) 앱 코드 -->
   <script src="app.js"></script>
 </body>
 </html>
