@@ -3,27 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>무선국 원격검침시설 유지보수 작업 경로 최적화</title>
+  <title>유지보수 작업 경로 최적화</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="layout">
     <aside class="left">
       <div class="titleRow">
-        <img src="logo.png" alt="회사 로고" class="logo" />
-        <h1 class="titleText">무선국 원격검침시설 유지보수 작업 경로 최적화</h1>
+        <!-- 로고 넣으실 거면 아래 주석 해제하고 파일 업로드 후 사용 -->
+        <img src="logo.png" alt="logo" class="logo" />
+        <h1 class="title">무선국 원격검침시설 유지보수 작업 경로 최적화</h1>
       </div>
+
       <p class="hint">첫 번째 행은 시작지점입니다. (최대 15건)</p>
 
       <div id="rows"></div>
 
       <div class="actions">
         <button id="addBtn" type="button">+ 추가</button>
-        <button id="optBtn" type="button">경로 최적화 실행</button>
+        <button id="optBtn" type="button">경로 최적화</button>
         <button id="shareBtn" type="button">모바일로 보내기(QR/링크)</button>
       </div>
-
-      <div id="msg" class="msg"></div>
 
       <div id="progressWrap" class="progressWrap" hidden>
         <div class="spinner" aria-hidden="true"></div>
@@ -32,44 +32,42 @@
           <div class="progressBar"><div id="progressBarFill" class="progressBarFill"></div></div>
         </div>
       </div>
-    </aside>
 
-    <main class="right">
+      <div id="msg" class="msg"></div>
 
-      <!-- ✅ 인앱 브라우저(카톡 등) 감지 시 노출되는 배너 -->
-      <div id="inAppBanner" class="inAppBanner" hidden>
-        <div class="inAppTitle">카카오톡(인앱)에서 열렸습니다</div>
-        <div class="inAppDesc">
-          네이버지도 앱 연결이 안 될 수 있어요. 가능하면 “외부 브라우저”로 열어주세요.
-        </div>
-        <div class="inAppBtns">
-          <button id="openExternalBtn" type="button">외부 브라우저로 열기</button>
-          <button id="copyLinkBtn" type="button">링크 복사</button>
-        </div>
-        <div class="inAppHint" id="inAppHint"></div>
-      </div>
-
-      <div class="topbar">
-        <div id="map" class="map"></div>
-      </div>
-
-      <div class="midbar">
-        <button id="naverBtn" type="button" disabled>네이버 지도 열기(다음 목적지)</button>
-      </div>
-      
+      <!-- 공유 박스 -->
       <div id="shareBox" class="shareBox" hidden>
+        <div class="shareTitle">모바일로 보내기</div>
+
         <div class="shareRow">
           <input id="shareUrl" readonly />
           <button id="copyBtn" type="button">링크 복사</button>
         </div>
 
-        <div class="shareHelp">
-          <div class="shareHelpTitle">카톡으로 보낼 안내 문구(권장)</div>
-          <textarea id="shareMsg" class="shareMsg" readonly></textarea>
-          <button id="copyMsgBtn" type="button">문구 복사</button>
-        </div>
+        <div id="qr" class="qr"></div>
 
-        <div id="qr"></div>
+        <div class="shareTitle">카톡용 안내 문구</div>
+        <textarea id="shareMsg" class="shareMsg" readonly></textarea>
+        <button id="copyMsgBtn" class="copyMsgBtn" type="button">안내 문구 복사</button>
+      </div>
+
+      <!-- 인앱(카톡 등) 안내 배너 -->
+      <div id="inAppBanner" class="inAppBanner" hidden>
+        <div class="inAppTitle">인앱 브라우저 안내</div>
+        <div id="inAppHint" class="inAppHint"></div>
+        <div class="inAppBtns">
+          <button id="openExternalBtn" type="button">Safari에서 열기 안내</button>
+          <button id="copyLinkBtn" type="button">링크 복사</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="right">
+      <div id="map" class="map"></div>
+
+      <!-- 버튼은 지도와 결과 사이에 -->
+      <div class="midActions">
+        <button id="naverBtn" type="button" disabled>네이버 지도 열기(다음 목적지)</button>
       </div>
 
       <div class="result">
@@ -79,44 +77,43 @@
 
       <div class="note">
         PC에서 주소 입력 → “모바일로 보내기(QR/링크)”로 휴대폰에서 열고,
-        모바일에서는 “네이버 지도 열기(다음 목적지)”로 네비게이션을 실행하세요.
+        모바일에서 “경로 최적화” 후 “네이버 지도 열기(다음 목적지)”로 내비게이션을 실행하세요.
       </div>
     </main>
   </div>
 
-  <!-- 네이버 지도 SDK -->
-  <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=ql4o2776tv&submodules=geocoder"></script>
+  <!-- 네이버 지도 JS SDK -->
+  <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=ql4o2776tv&submodules=geocoder&callback=initMap"></script>
 
-  <!-- QRCode 라이브러리(share 기능) -->
+  <!-- QR 생성 라이브러리(꼭 필요) -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
   <script src="app.js"></script>
 
   <!-- iOS Safari 열기 안내 모달 -->
-<div id="iosGuideModal" class="modal" hidden>
-  <div class="modalBackdrop" data-close="1"></div>
-  <div class="modalCard" role="dialog" aria-modal="true" aria-label="Safari에서 열기 안내">
-    <div class="modalHeader">
-      <div class="modalTitle">iPhone: Safari에서 열기</div>
-      <button id="iosGuideClose" class="modalClose" type="button" aria-label="닫기">✕</button>
-    </div>
-
-    <div class="modalBody">
-      <img
-        src="ios-safari-guide.png"
-        alt="Safari에서 열기 안내 캡처"
-        class="guideImg"
-      />
-      <div class="modalActions">
-        <button id="iosCopyLink" type="button">링크 복사</button>
-        <button id="iosOpenAgain" type="button">다시 시도</button>
+  <div id="iosGuideModal" class="modal" hidden>
+    <div class="modalBackdrop" data-close="1"></div>
+    <div class="modalCard" role="dialog" aria-modal="true" aria-label="Safari에서 열기 안내">
+      <div class="modalHeader">
+        <div class="modalTitle">iPhone: Safari에서 열기</div>
+        <button id="iosGuideClose" class="modalClose" type="button" aria-label="닫기">✕</button>
       </div>
-      <div class="modalHint">
-        화면에서 공유(⬆︎) 메뉴에서 “Safari에서 열기”를 선택하세요.
+
+      <div class="modalBody">
+        <img
+          src="ios-safari-guide.png"
+          alt="Safari에서 열기 안내 캡처"
+          class="guideImg"
+        />
+        <div class="modalActions">
+          <button id="iosCopyLink" type="button">링크 복사</button>
+          <button id="iosOpenAgain" type="button">확인</button>
+        </div>
+        <div class="modalHint">
+          화면의 공유(⬆︎) 버튼을 눌러 “Safari에서 열기”를 선택하세요.
+        </div>
       </div>
     </div>
   </div>
-</div>
-  
 </body>
 </html>
