@@ -41,6 +41,12 @@ body {
   background: #fff;
   border-radius: 10px;
   cursor: pointer;
+
+  height: 100%;            /* 입력칸 높이와 동일 */
+  display: flex;
+  align-items: center;     /* 세로 가운데 */
+  justify-content: center; /* 가로 가운데 */
+  font-size: 16px;
 }
 
 .row button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -191,7 +197,7 @@ body {
   /* row children order: idxBadge(1), customer input(2), address input(3), del button(4), (optional) errorMsg */
   .row input:nth-child(2){ grid-area: customer; }
   .row input:nth-child(3){ grid-area: address; }
-  .row button{ grid-area: del; height: 42px; }
+  .row button{ grid-area: del; height: 100%; }
 
   .actions { flex-direction: column; }
   .actions button,
