@@ -566,6 +566,9 @@ if (copyMsgBtn) {
 
   renderRows();
 
+   // ⭐ 초기 지도 표시 (회색 방지)
+  ensureMap({ lat: 37.3828, lng: 126.6569 }); // 송도 IoT기술지원센터 기준
+
   // 모바일 링크 진입(data=...)이면 자동 최적화 → 네이버 버튼 자동 활성화
   if (restored) runOptimize();
 
