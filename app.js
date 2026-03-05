@@ -15,6 +15,9 @@ const progressWrap = document.getElementById("progressWrap");
 const progressText = document.getElementById("progressText");
 const progressBarFill = document.getElementById("progressBarFill");
 
+const totalTimeEl = document.getElementById("totalTime");
+const totalDistEl = document.getElementById("totalDist");
+
 // Share
 const shareBtn = document.getElementById("shareBtn");
 const shareBox = document.getElementById("shareBox");
@@ -71,6 +74,20 @@ function hideProgress() {
   if (!progressWrap) return;
   progressWrap.hidden = true;
   if (progressBarFill) progressBarFill.style.width = "0%";
+}
+
+function formatDuration(sec) {
+  sec = Math.max(0, Math.round(Number(sec || 0)));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (h > 0) return `${h}시간 ${m}분`;
+  return `${m}분`;
+}
+
+function formatDistance(meters) {
+  meters = Math.max(0, Math.round(Number(meters || 0)));
+  if (meters >= 1000) return `${(meters / 1000).toFixed(1)}km`;
+  return `${meters}m`;
 }
 
 function isMobile() {
@@ -346,17 +363,34 @@ async function renderResult(order) {
     resultList.appendChild(li);
   });
 
-  // 지도 경로
+  // 지도 경로 + 총 시간/거리
   try {
     showProgress("지도 경로 생성 중...", 98);
-    const orderedPoints = order.map((i) => state.coords[i]);
+
+    const orderedPoints = order.map(i => state.coords[i]);
     const routeData = await fetchRoutePath(orderedPoints);
+
+    // ✅ 여기서 총 예상시간/거리 표시 (routeData에 값이 있을 때만)
+    if (totalTimeEl) {
+      totalTimeEl.textContent =
+        routeData.totalDurationSec != null ? formatDuration(routeData.totalDurationSec) : "-";
+    }
+    if (totalDistEl) {
+      totalDistEl.textContent =
+        routeData.totalDistanceMeters != null ? formatDistance(routeData.totalDistanceMeters) : "-";
+    }
+
+    // 기존: path로 지도 선 그리기
     if (Array.isArray(routeData.path) && routeData.path.length) {
       drawRouteOnMap(routeData.path, orderedPoints);
     }
   } catch (e) {
     console.warn(e);
     setMsg(e.message);
+
+    // 실패 시 표시 초기화(선택)
+    if (totalTimeEl) totalTimeEl.textContent = "-";
+    if (totalDistEl) totalDistEl.textContent = "-";
   }
 }
 
