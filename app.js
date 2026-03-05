@@ -475,32 +475,6 @@ function showInAppBannerIfNeeded() {
       setMsg(ok ? "링크를 복사했습니다." : "복사 실패");
     });
   }
-
-  if (openExternalBtn) {
-    openExternalBtn.addEventListener("click", async () => {
-      const url = location.href;
-
-      if (isAndroid()) {
-        // Chrome intent 시도
-        const intentUrl = makeChromeIntentUrl(url);
-        location.href = intentUrl;
-
-        // 실패 대비(일부 환경) 800ms 후 일반 새창 시도
-        setTimeout(() => {
-          window.open(url, "_blank");
-        }, 800);
-        return;
-      }
-
-      if (isIOS()) {
-        await copyText(url);      // 링크는 미리 복사
-        openIosGuideModal();      // ✅ 안내 이미지 모달 띄우기
-        return;
-      }
-
-      window.open(url, "_blank");
-    });
-  }
 }
 
 // ===== Events =====
@@ -591,6 +565,29 @@ if (copyMsgBtn) {
 
 // ===== Init =====
 (function init() {
+
+  // ✅ iOS 안내 버튼은 항상 동작하도록 강제 연결(카톡 인앱에서 무반응 방지)
+if (openExternalBtn) {
+  openExternalBtn.onclick = async () => {
+    const url = location.href;
+
+    if (isIOS()) {
+      await copyText(url);      // 링크 복사(편의)
+      openIosGuideModal();      // ✅ 안내 이미지 모달 오픈
+      return;
+    }
+
+    if (isAndroid()) {
+      const intentUrl = makeChromeIntentUrl(url);
+      location.href = intentUrl;
+      setTimeout(() => window.open(url, "_blank"), 800);
+      return;
+    }
+
+    window.open(url, "_blank");
+  };
+}
+  
   hideProgress();
 
   const restored = readSharedDataFromUrl();
