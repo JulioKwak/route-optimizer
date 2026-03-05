@@ -206,3 +206,24 @@ body {
 
   .result ol { padding-left: 18px; }
 }
+
+/* 지오코딩 실패한 주소 입력창 표시 */
+.row input.err{
+  border-color:#d32f2f !important;
+  box-shadow: 0 0 0 3px rgba(211,47,47,0.12);
+}
+
+.numMarker{
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  border: 2px solid #fff;
+}
