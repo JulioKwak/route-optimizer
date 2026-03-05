@@ -51,37 +51,42 @@
         <button id="copyMsgBtn" class="copyMsgBtn" type="button">안내 문구 복사</button>
       </div>
 
-    <!-- 인앱(카톡 등) 안내 배너 -->
-    <div id="inAppBanner" class="inAppBanner" hidden>
-      <div class="inAppTitle">인앱 브라우저 안내</div>
-      <div id="inAppHint" class="inAppHint"></div>
-      <div class="inAppBtns">
-        <button id="openExternalBtn" type="button">Safari에서 열기 안내</button>
-        <button id="copyLinkBtn" type="button">링크 복사</button>
-      </div>
-    
-      <!-- ✅ iOS 안내: 페이지 내 접기/펼치기 -->
-      <div id="iosGuideInline" class="iosGuideInline" hidden>
-        <button id="iosGuideToggle" type="button" class="iosGuideToggle" aria-expanded="false">
-          iPhone: “Safari에서 열기” 안내 보기
-        </button>
-    
-        <div id="iosGuidePanel" class="iosGuidePanel" hidden>
-          <img
-            src="ios-safari-guide.png"
-            alt="Safari에서 열기 안내"
-            class="iosGuideImg"
-            loading="lazy"
-          />
-          <div class="iosGuideActions">
-            <button id="iosInlineCopyLink" type="button">링크 복사</button>
-          </div>
-          <div class="iosGuideHint">
-            화면의 공유(⬆︎) 버튼 → “Safari에서 열기”를 선택하세요.
+       <!-- 인앱(카톡 등) 안내 배너 -->
+      <div id="inAppBanner" class="inAppBanner" hidden>
+        <div class="inAppTitle">인앱 브라우저 안내</div>
+        <div id="inAppHint" class="inAppHint"></div>
+      
+        <!-- ✅ iOS 안내: 파란 글씨 토글(접기/펼치기)로만 컨트롤 -->
+        <div id="iosGuideInline" class="iosGuideInline" hidden>
+          <button
+            id="iosGuideToggle"
+            type="button"
+            class="iosGuideToggle"
+            aria-expanded="false"
+          >
+            Safari에서 열기 안내 보기
+          </button>
+      
+          <div id="iosGuidePanel" class="iosGuidePanel" hidden>
+            <img
+              src="ios-safari-guide.png"
+              alt="Safari에서 열기 안내"
+              class="iosGuideImg"
+              loading="lazy"
+            />
+            <div class="iosGuideHint">
+              화면의 공유(⬆︎) 버튼을 눌러 “Safari에서 열기”를 선택하세요.
+            </div>
           </div>
         </div>
+      
+        <!-- ✅ 공통 버튼: 링크 복사만 남김 -->
+        <div class="inAppBtns">
+          <!-- 회색 버튼은 DOM은 남겨도 되지만, iOS에서 숨김 처리할 예정 -->
+          <button id="openExternalBtn" type="button" hidden>외부 브라우저로 열기</button>
+          <button id="copyLinkBtn" type="button">링크 복사</button>
+        </div>
       </div>
-    </div>
 
     </aside>
 
