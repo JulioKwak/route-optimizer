@@ -586,3 +586,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "No
 .footerValue{
   color: #666;
 }
+
+/* iOS 인앱에서는 회색 버튼(openExternalBtn) 숨김 */
+.iosHideExternalBtn #openExternalBtn { display: none !important; }
+
