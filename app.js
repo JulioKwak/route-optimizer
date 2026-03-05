@@ -1,3 +1,7 @@
+window.navermap_authFailure = function () {
+  setMsg("네이버 지도 인증 실패: Client ID / Web 서비스 URL을 확인해 주세요.");
+};
+
 const MAX = 15;
 const CONCURRENCY = 4; // 병렬 지오코딩 동시 처리 수(8건 기준 4 추천)
 
@@ -33,6 +37,22 @@ let state = {
   errorMap: {},       // { [rowIndex]: "에러 메시지" }
 };
 
+// maps.js? ... &callback=initMap 로 불릴 함수
+window.initMap = function () {
+  // 이미 생성돼 있으면 재생성 방지
+  if (nmap) return;
+
+  const el = document.getElementById("map");
+  if (!el) return;
+
+  // 기본 중심(서울시청)
+  const center = new naver.maps.LatLng(37.5665, 126.9780);
+
+  nmap = new naver.maps.Map(el, {
+    center,
+    zoom: 12,
+  });
+};
 // ---------- Utils ----------
 function setMsg(text = "") {
   if (msgEl) msgEl.textContent = text;
