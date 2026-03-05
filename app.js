@@ -9,7 +9,6 @@ const msgEl = document.getElementById("msg");
 const addBtn = document.getElementById("addBtn");
 const optBtn = document.getElementById("optBtn");
 const naverBtn = document.getElementById("naverBtn");
-
 const resultList = document.getElementById("resultList");
 
 const progressWrap = document.getElementById("progressWrap");
@@ -51,6 +50,12 @@ let state = {
   errorMap: {},
 };
 
+// ===== Map init callback (네이버 SDK callback=initMap) =====
+window.initMap = function () {
+  // 초기 회색 방지용 기본 지도(송도 벤처로 82 근처)
+  ensureMap({ lat: 37.3828, lng: 126.6569 });
+};
+
 // ===== Utils =====
 function setMsg(text = "") {
   if (msgEl) msgEl.textContent = text;
@@ -78,7 +83,6 @@ function isAndroid() {
 function isIOS() {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
-
 // 카톡/인앱 브라우저 감지(대부분 커버)
 function isInAppBrowser() {
   const ua = navigator.userAgent || "";
@@ -99,7 +103,7 @@ function fromBase64Url(b64url) {
 function buildShareUrl() {
   const payload = {
     v: 1,
-    rows: state.rows.map((r) => ({
+    rows: state.rows.map(r => ({
       customer: (r.customer || "").trim(),
       address: (r.address || "").trim(),
     })),
@@ -118,7 +122,7 @@ function readSharedDataFromUrl() {
   try {
     const obj = JSON.parse(fromBase64Url(data));
     if (!obj || !Array.isArray(obj.rows) || obj.rows.length < 2) return null;
-    const rows = obj.rows.slice(0, MAX).map((r) => ({
+    const rows = obj.rows.slice(0, MAX).map(r => ({
       customer: (r.customer ?? "").toString(),
       address: (r.address ?? "").toString(),
     }));
@@ -150,60 +154,6 @@ async function mapLimit(items, limit, worker) {
   });
   await Promise.all(runners);
   return results;
-}
-
-// ===== Clipboard =====
-async function copyText(text) {
-  try {
-    // iOS/인앱에서 여기서 실패할 수 있음 → 호출부에서 try/catch로 방어
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      // 구형 대응
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.setAttribute("readonly", "");
-      ta.style.position = "fixed";
-      ta.style.left = "-9999px";
-      document.body.appendChild(ta);
-      ta.select();
-      ta.setSelectionRange(0, ta.value.length);
-      const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-      return ok;
-    } catch {
-      return false;
-    }
-  }
-}
-
-// ===== iOS Guide Modal =====
-function openIosGuideModal() {
-  if (!iosGuideModal) return;
-  iosGuideModal.hidden = false;
-}
-function closeIosGuideModal() {
-  if (!iosGuideModal) return;
-  iosGuideModal.hidden = true;
-}
-
-// 모달 닫기/버튼 이벤트 (한 번만 등록)
-if (iosGuideClose) iosGuideClose.addEventListener("click", closeIosGuideModal);
-if (iosGuideModal) {
-  iosGuideModal.addEventListener("click", (e) => {
-    const t = e.target;
-    if (t && t.dataset && t.dataset.close) closeIosGuideModal();
-  });
-}
-if (iosCopyLink) {
-  iosCopyLink.addEventListener("click", async () => {
-    const ok = await copyText(location.href);
-    setMsg(ok ? "링크를 복사했습니다." : "복사 실패(수동으로 주소창 복사)");
-  });
-}
-if (iosOpenAgain) {
-  iosOpenAgain.addEventListener("click", () => closeIosGuideModal());
 }
 
 // ===== UI: Rows =====
@@ -287,11 +237,7 @@ async function fetchRoutePath(orderedPoints) {
   });
   const text = await routeRes.text();
   let routeData = {};
-  try {
-    routeData = JSON.parse(text);
-  } catch {
-    routeData = { raw: text };
-  }
+  try { routeData = JSON.parse(text); } catch { routeData = { raw: text }; }
   if (!routeRes.ok || routeData.error) throw new Error(routeData.error || `directions api error (HTTP ${routeRes.status})`);
   return routeData;
 }
@@ -310,15 +256,11 @@ function optimizeOrderByNearest(points) {
 
   for (let step = 1; step < n; step++) {
     const last = order[order.length - 1];
-    let best = -1,
-      bestD = Infinity;
+    let best = -1, bestD = Infinity;
     for (let i = 1; i < n; i++) {
       if (visited[i]) continue;
       const d = dist2(points[last], points[i]);
-      if (d < bestD) {
-        bestD = d;
-        best = i;
-      }
+      if (d < bestD) { bestD = d; best = i; }
     }
     visited[best] = true;
     order.push(best);
@@ -328,11 +270,8 @@ function optimizeOrderByNearest(points) {
 
 // ===== Map =====
 function clearMap() {
-  if (routeLine) {
-    routeLine.setMap(null);
-    routeLine = null;
-  }
-  markers.forEach((m) => m.setMap(null));
+  if (routeLine) { routeLine.setMap(null); routeLine = null; }
+  markers.forEach(m => m.setMap(null));
   markers = [];
 }
 
@@ -370,17 +309,17 @@ function drawRouteOnMap(pathLatLng, orderedPoints) {
       title: String(i + 1),
       icon: {
         content: markerHtml(i + 1),
-        anchor: new naver.maps.Point(12, 12),
+        anchor: new naver.maps.Point(13, 13),
       },
     });
     markers.push(m);
   });
 
-  const linePath = pathLatLng.map((p) => new naver.maps.LatLng(p.lat, p.lng));
+  const linePath = pathLatLng.map(p => new naver.maps.LatLng(p.lat, p.lng));
   routeLine = new naver.maps.Polyline({ map: nmap, path: linePath, strokeWeight: 5 });
 
   const bounds = new naver.maps.LatLngBounds();
-  linePath.forEach((ll) => bounds.extend(ll));
+  linePath.forEach(ll => bounds.extend(ll));
   nmap.fitBounds(bounds, { top: 30, right: 30, bottom: 30, left: 30 });
 }
 
@@ -398,7 +337,7 @@ async function renderResult(order) {
   // 지도 경로
   try {
     showProgress("지도 경로 생성 중...", 98);
-    const orderedPoints = order.map((i) => state.coords[i]);
+    const orderedPoints = order.map(i => state.coords[i]);
     const routeData = await fetchRoutePath(orderedPoints);
     if (Array.isArray(routeData.path) && routeData.path.length) {
       drawRouteOnMap(routeData.path, orderedPoints);
@@ -425,7 +364,7 @@ async function runOptimize() {
 
     showProgress("좌표 변환 준비 중...", 0);
 
-    const addrs = state.rows.map((r) => r.address.trim());
+    const addrs = state.rows.map(r => r.address.trim());
     const total = addrs.length;
 
     const coords = await mapLimit(addrs, CONCURRENCY, async (addr, i) => {
@@ -461,13 +400,56 @@ async function runOptimize() {
   }
 }
 
-// ===== In-app → External Browser helpers =====
+// ===== External browser helpers =====
 function makeChromeIntentUrl(url) {
   const u = new URL(url);
   const hostPath = (u.host + u.pathname).replace(/^\//, "");
   const query = u.search ? u.search : "";
   const hash = `#Intent;scheme=https;package=com.android.chrome;end`;
   return `intent://${hostPath}${query}${hash}`;
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  }
+}
+
+// iOS 모달
+function openIosGuideModal() {
+  if (!iosGuideModal) return;
+  iosGuideModal.hidden = false;
+}
+function closeIosGuideModal() {
+  if (!iosGuideModal) return;
+  iosGuideModal.hidden = true;
+}
+
+// 모달 이벤트(한 번만)
+if (iosGuideClose) iosGuideClose.addEventListener("click", closeIosGuideModal);
+if (iosGuideModal) {
+  iosGuideModal.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t && t.dataset && t.dataset.close) closeIosGuideModal();
+  });
+}
+if (iosCopyLink) {
+  iosCopyLink.addEventListener("click", async () => {
+    const ok = await copyText(location.href);
+    setMsg(ok ? "링크를 복사했습니다." : "복사 실패");
+  });
+}
+if (iosOpenAgain) {
+  iosOpenAgain.addEventListener("click", closeIosGuideModal);
 }
 
 function showInAppBannerIfNeeded() {
@@ -478,10 +460,11 @@ function showInAppBannerIfNeeded() {
   inAppBanner.hidden = false;
 
   if (isAndroid()) {
-    inAppHint.textContent = "Android: “외부 브라우저로 열기”를 누르면 Chrome으로 전환을 시도합니다.";
+    inAppHint.textContent = "Android: 상단 “외부 브라우저로 열기(Chrome 권장)”를 사용하세요.";
+    if (openExternalBtn) openExternalBtn.textContent = "외부 브라우저로 열기";
   } else if (isIOS()) {
-    inAppHint.textContent =
-      "iPhone: 카카오톡 화면에서 공유(⬆︎) 또는 메뉴에서 ‘Safari에서 열기’를 선택하세요. 없으면 ‘링크 복사’ 후 Safari에 붙여넣기 하시면 됩니다.";
+    // ✅ iOS는 강제 불가 → 안내 모달만
+    inAppHint.textContent = "iPhone: 아래 버튼을 눌러 ‘Safari에서 열기’ 안내를 확인하세요.";
     if (openExternalBtn) openExternalBtn.textContent = "Safari에서 열기 안내";
   } else {
     inAppHint.textContent = "인앱 브라우저에서는 일부 기능이 제한될 수 있습니다.";
@@ -489,9 +472,30 @@ function showInAppBannerIfNeeded() {
 
   if (copyLinkBtn) {
     copyLinkBtn.onclick = async () => {
+      const ok = await copyText(location.href);
+      setMsg(ok ? "링크를 복사했습니다." : "복사 실패");
+    };
+  }
+
+  // ✅ 버튼 클릭은 onclick으로 강제(인앱에서 addEventListener 씹히는 경우 방지)
+  if (openExternalBtn) {
+    openExternalBtn.onclick = async () => {
       const url = location.href;
-      const ok = await copyText(url);
-      setMsg(ok ? "링크를 복사했습니다." : "복사 실패(수동으로 주소창 복사)");
+
+      if (isIOS()) {
+        await copyText(url);   // 편의: 링크 복사
+        openIosGuideModal();   // 안내 이미지
+        return;
+      }
+
+      if (isAndroid()) {
+        const intentUrl = makeChromeIntentUrl(url);
+        location.href = intentUrl;
+        setTimeout(() => window.open(url, "_blank"), 800);
+        return;
+      }
+
+      window.open(url, "_blank");
     };
   }
 }
@@ -538,22 +542,22 @@ naverBtn.addEventListener("click", () => {
 
 // Share: QR/Link + “카톡 안내 문구”
 if (shareBtn) {
-  shareBtn.addEventListener("click", async () => {
+  shareBtn.addEventListener("click", () => {
     setMsg("");
 
     const url = buildShareUrl();
     if (shareUrlEl) shareUrlEl.value = url;
     if (shareBox) shareBox.hidden = false;
 
-    // 카톡 안내 문구(아이폰 '…' 언급 제거)
     const guide =
 `[경로 최적화 링크]
 ${url}
 
 ※ 카카오톡에서 누르면 앱 안(인앱브라우저)으로 열릴 수 있습니다.
-- Android: 페이지 상단 “외부 브라우저로 열기” 버튼(Chrome 권장)
-- iPhone: 공유(⬆︎) 또는 메뉴에서 “Safari에서 열기”
-열린 다음 “네이버 지도 열기(다음 목적지)”를 누르세요.`;
+- Android: “외부 브라우저로 열기” 버튼(Chrome 권장)
+- iPhone: 공유(⬆︎) 버튼 → “Safari에서 열기”
+열린 다음 “경로 최적화”를 눌러 계산 후,
+“네이버 지도 열기(다음 목적지)”로 내비게이션을 실행하세요.`;
 
     if (shareMsgEl) shareMsgEl.value = guide;
 
@@ -565,64 +569,48 @@ ${url}
         qrEl.textContent = "QR 라이브러리가 로드되지 않았습니다.";
       }
     }
-
-    // iOS 인앱에서 복사 실패가 잦으니, 여기서는 자동복사 시도만(실패해도 OK)
-    try { await copyText(url); } catch {}
   });
 }
 
 if (copyBtn) {
   copyBtn.addEventListener("click", async () => {
     const ok = await copyText(shareUrlEl.value || "");
-    setMsg(ok ? "링크를 복사했습니다." : "복사 실패(수동으로 주소창 복사)");
+    setMsg(ok ? "링크를 복사했습니다." : "복사 실패");
   });
 }
 
 if (copyMsgBtn) {
   copyMsgBtn.addEventListener("click", async () => {
     const ok = await copyText(shareMsgEl.value || "");
-    setMsg(ok ? "안내 문구를 복사했습니다." : "복사 실패(수동으로 선택 후 복사)");
+    setMsg(ok ? "안내 문구를 복사했습니다." : "복사 실패");
   });
 }
 
 // ===== Init =====
 (function init() {
-  // ✅ 외부 브라우저/안내 버튼은 항상 동작하도록 1회 바인딩
-  if (openExternalBtn) {
-    openExternalBtn.onclick = async () => {
-      const url = location.href;
-
-      if (isIOS()) {
-        // iOS 인앱에서 clipboard가 실패해도 모달은 무조건 뜨게
-        try { await copyText(url); } catch {}
-        openIosGuideModal();
-        return;
-      }
-
-      if (isAndroid()) {
-        const intentUrl = makeChromeIntentUrl(url);
-        location.href = intentUrl;
-        setTimeout(() => window.open(url, "_blank"), 800);
-        return;
-      }
-
-      window.open(url, "_blank");
-    };
-  }
-
   hideProgress();
 
+  // 공유 링크(data=...)면 입력값만 복원 (✅ 자동 최적화 OFF)
   const restored = readSharedDataFromUrl();
-  if (restored) state.rows = restored;
+  if (restored) {
+    state.rows = restored;
+    setMsg("주소가 복원되었습니다. ‘경로 최적화’를 눌러 계산하세요.");
+  }
 
   renderRows();
 
-  // ⭐ 초기 지도 표시 (회색 방지) - 송도(인천 연수구 벤처로 82 근처)
-  ensureMap({ lat: 37.3828, lng: 126.6569 });
+  // 네이버 버튼 기본 비활성(계산 후 활성)
+  if (naverBtn) {
+    naverBtn.disabled = true;
+    naverBtn.textContent = "경로 계산 후 활성화됩니다";
+  }
 
-  // 모바일 링크 진입(data=...)이면 자동 최적화
-  // if (restored) runOptimize();
-
-  // 카톡/인앱이면 배너 표시(외부 브라우저 유도)
+  // 인앱이면 안내(✅ iOS는 안내 모달 버튼)
   showInAppBannerIfNeeded();
+
+  // initMap callback이 못 도는 경우(네이버 SDK 로딩 지연 대비)
+  // 1초 후 한 번 더 지도 초기화 시도
+  setTimeout(() => {
+    if (!nmap) ensureMap({ lat: 37.3828, lng: 126.6569 });
+  }, 1000);
 })();
