@@ -20,9 +20,6 @@ const routeCard = document.getElementById("routeCard");
 const cardTimeEl = document.getElementById("cardTime");
 const cardDistEl = document.getElementById("cardDist");
 
-// ✅ Leg list
-const legListEl = document.getElementById("legList");
-
 // Share
 const shareBtn = document.getElementById("shareBtn");
 const shareBox = document.getElementById("shareBox");
@@ -406,7 +403,6 @@ async function renderResult(order) {
     resultList.appendChild(li);
   });
 
-  if (legListEl) legListEl.innerHTML = "";
   if (routeCard) routeCard.hidden = true;
   if (cardTimeEl) cardTimeEl.textContent = "-";
   if (cardDistEl) cardDistEl.textContent = "-";
@@ -430,29 +426,12 @@ async function renderResult(order) {
       drawRouteOnMap(routeData.path, orderedPoints);
     }
 
-    // 구간별(leg) 표시
-    if (legListEl) {
-      const legs = extractLegs(routeData, order);
-
-      legs.forEach((leg, i) => {
-        const fromTxt = getPointLabelByRowIndex(leg.fromRowIdx);
-        const toTxt = getPointLabelByRowIndex(leg.toRowIdx);
-
-        const t = leg.sec != null ? formatDuration(leg.sec) : "-";
-        const d = leg.meters != null ? formatDistance(leg.meters) : "-";
-
-        const li = document.createElement("li");
-        li.textContent = `${i + 1}) ${fromTxt} → ${toTxt}  (${t} · ${d})`;
-        legListEl.appendChild(li);
-      });
-    }
   } catch (e) {
     console.warn(e);
     setMsg(e.message);
     if (routeCard) routeCard.hidden = true;
     if (cardTimeEl) cardTimeEl.textContent = "-";
     if (cardDistEl) cardDistEl.textContent = "-";
-    if (legListEl) legListEl.innerHTML = "";
   }
 }
 
