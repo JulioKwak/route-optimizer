@@ -1,92 +1,50 @@
 * { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; }
 
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
-}
-
+/* 좌측 폭 넓힘 */
 .layout { display: grid; grid-template-columns: 680px 1fr; min-height: 100vh; }
+
 .left { padding: 16px; border-right: 1px solid #e5e5e5; }
 .right { padding: 16px; }
 
-.hint { color: #666; font-size: 14px; margin-top: 6px; }
-.msg { margin-top: 12px; color: #b00020; font-size: 14px; }
+/* 제목 + 로고 */
+.titleRow { display: flex; align-items: center; gap: 10px; }
+.logo { width: 34px; height: 34px; object-fit: contain; }
+.title { margin: 0; font-size: 22px; line-height: 1.2; }
 
-/* 입력 행(번호 포함) */
-.row{
-  display: grid;
-  grid-template-columns: 28px 110px 1fr 42px; /* 번호칸 + 고객번호 + 주소 + 삭제 */
-  gap: 8px;
-  margin: 8px 0;
-  align-items: center;
-}
-.idxBadge{
-  display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  font-weight:700;
-  color:#444;
-}
+.hint { color: #666; font-size: 14px; margin-top: 10px; margin-bottom: 10px; }
+
+/* 행: 번호 + 고객번호 + 주소 + 삭제 */
+.row { display: grid; grid-template-columns: 28px 150px 1fr 52px; gap: 10px; margin: 10px 0; align-items: center; }
+.idxBadge{ display:flex; align-items:center; justify-content:flex-end; font-weight:700; color:#444; }
+
+/* 입력/버튼 높이 통일 */
+.row input, .row button { height: 44px; }
 
 .row input {
   width: 100%;
-  padding: 12px;
-  font-size: 14px;
+  padding: 10px 12px;
   border: 1px solid #ddd;
-  border-radius: 10px;
+  border-radius: 12px;
+  font-size: 14px;
 }
 
 .row button {
   border: 1px solid #ddd;
   background: #fff;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
-
-  height: 100%;            /* 입력칸 높이와 동일 */
-  display: flex;
-  align-items: center;     /* 세로 가운데 */
-  justify-content: center; /* 가로 가운데 */
   font-size: 16px;
 }
 
-.titleRow{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-bottom: 6px;
+/* 주소 실패 표시 */
+.row input.err {
+  border-color: #d32f2f;
+  background: #fff5f5;
 }
 
-.logo{
-  height: 34px;      /* 제목과 균형 좋은 기본값 */
-  width: auto;
-  object-fit: contain;
-}
-
-.titleText{
-  margin: 0;
-  font-size: 22px;   /* 원하시면 조절 */
-  line-height: 1.2;
-}
-
-/* 모바일에서는 살짝 줄이기 */
-@media (max-width: 520px){
-  .logo{ height: 28px; }
-  .titleText{ font-size: 18px; }
-}
-
-.row button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* 주소 변환 실패 표시 */
-.row.isError input { border-color: #d32f2f; }
-.rowErrorMsg{
-  grid-column: 2 / -1; /* 번호칸 제외하고 아래로 */
-  font-size: 12px;
-  color: #d32f2f;
-  margin-top: 2px;
-}
-
-/* 액션 버튼 */
-.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+/* 상단 버튼들 */
+.actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .actions button {
   padding: 10px 12px;
   border-radius: 12px;
@@ -96,20 +54,76 @@ body {
 }
 .actions button:hover { background: #f7f7f7; }
 
-/* 우측 버튼 바 */
-.topbar { display: flex; justify-content: flex-end; gap: 8px; margin: 8px 0 12px; }
-.topbar button {
+.msg { margin-top: 12px; color: #b00020; font-size: 14px; }
+
+/* 지도 */
+.map{
+  width: 100%;
+  height: 420px;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  background: #f7f7f7;
+  margin-bottom: 12px;
+}
+
+/* 지도 아래 버튼 */
+.midActions { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.midActions button {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid #ddd;
   background: #fff;
   cursor: pointer;
 }
-.topbar button:disabled { opacity: 0.5; cursor: not-allowed; }
+.midActions button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* 결과 */
 .result { border: 1px solid #eee; border-radius: 14px; padding: 12px; }
 .note { margin-top: 12px; color: #666; font-size: 13px; }
+
+/* 공유 박스 */
+.shareBox {
+  margin-top: 14px;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fafafa;
+}
+.shareTitle { font-weight: 700; margin: 6px 0 10px; }
+.shareRow { display: grid; grid-template-columns: 1fr 110px; gap: 8px; align-items: center; }
+#shareUrl {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 13px;
+}
+#copyBtn {
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
+.qr { margin-top: 10px; }
+.shareMsg {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 13px;
+  resize: vertical;
+  background: #fff;
+}
+.copyMsgBtn {
+  margin-top: 8px;
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
 
 /* 로딩/진행률 */
 .progressWrap {
@@ -134,195 +148,131 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.progressText {
-  font-size: 13px;
-  color: #333;
-  margin-bottom: 6px;
-}
-.progressBar {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(0,0,0,0.10);
-  overflow: hidden;
-}
-.progressBarFill {
-  height: 100%;
-  width: 0%;
-  background: rgba(0,0,0,0.55);
-  border-radius: 999px;
-  transition: width 180ms ease;
-}
+.progressText { font-size: 13px; color: #333; margin-bottom: 6px; }
+.progressBar { height: 8px; border-radius: 999px; background: rgba(0,0,0,0.10); overflow: hidden; }
+.progressBarFill { height: 100%; width: 0%; background: rgba(0,0,0,0.55); border-radius: 999px; transition: width 180ms ease; }
 
 /* hidden 강제 */
 [hidden] { display: none !important; }
 
-/* 지도 */
-.map{
-  width: 100%;
-  height: 360px;
-  border: 1px solid #eee;
-  border-radius: 16px;
-  background: #f7f7f7;
-  margin-bottom: 12px;
-}
-
-/* 지도-결과 사이 버튼 영역 */
-.midbar{
-  display:flex;
-  justify-content:flex-end; /* 우측 정렬 */
-  margin: 10px 0 12px;
-}
-
-#naverBtn{
-  height: 48px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #ddd;
-  background: #fff;
-  cursor: pointer;
-}
-
-#naverBtn:disabled{
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* 모바일: 버튼 100% 폭 */
-@media (max-width: 520px){
-  .midbar{ justify-content: stretch; }
-  #naverBtn{ width:100%; height: 50px; }
-}
-
-/* 공유 박스(QR/링크) */
-.shareBox{
-  border: 1px solid #eee;
-  border-radius: 14px;
-  padding: 12px;
-  margin-bottom: 12px;
-  background: #fafafa;
-}
-.shareRow{
-  display: grid;
-  grid-template-columns: 1fr 84px;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-#shareUrl{
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-}
-#copyBtn{
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #ddd;
-  background: #fff;
-  cursor: pointer;
-}
-#copyBtn:hover { background: #f7f7f7; }
-#qr { display: flex; justify-content: center; }
-
-/* 반응형 */
-@media (max-width: 900px) {
-  .layout { grid-template-columns: 1fr; }
-  .left { border-right: 0; border-bottom: 1px solid #e5e5e5; }
-  .right { padding-top: 12px; }
-}
-
-@media (max-width: 520px) {
-  .left, .right { padding: 12px; }
-  h1 { font-size: 20px; margin: 0 0 6px; }
-  .hint { font-size: 12px; }
-
-  .row{
-    grid-template-columns: 28px 1fr 42px;
-    grid-template-areas:
-      "idx customer del"
-      "idx address  address";
-    gap: 8px;
-    align-items: center;
-  }
-  .idxBadge{ grid-area: idx; }
-
-  /* row children order: idxBadge(1), customer input(2), address input(3), del button(4), (optional) errorMsg */
-  .row input:nth-child(2){ grid-area: customer; }
-  .row input:nth-child(3){ grid-area: address; }
-  .row button{ grid-area: del; height: 100%; }
-
-  .actions { flex-direction: column; }
-  .actions button,
-  .topbar button,
-  #copyBtn {
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: 14px;
-  }
-
-  .shareRow { grid-template-columns: 1fr; }
-  .map { height: 300px; }
-
-  .result ol { padding-left: 18px; }
-}
-
-/* 지오코딩 실패한 주소 입력창 표시 */
-.row input.err{
-  border-color:#d32f2f !important;
-  box-shadow: 0 0 0 3px rgba(211,47,47,0.12);
-}
-
-/* ===== 인앱 브라우저 배너 ===== */
-.inAppBanner{
-  border: 1px solid #eee;
-  border-radius: 14px;
-  padding: 12px;
-  background: #fffbe6;
-  margin-bottom: 12px;
-}
-.inAppTitle{ font-weight: 800; margin-bottom: 6px; }
-.inAppDesc{ font-size: 13px; color:#444; margin-bottom: 10px; }
-.inAppBtns{ display:flex; gap:8px; flex-wrap:wrap; }
-.inAppBtns button{
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #ddd;
-  background: #fff;
-  cursor:pointer;
-}
-.inAppHint{ margin-top: 8px; font-size: 12px; color:#666; }
-
-/* ===== 주소 실패 표시 ===== */
-.row input.err{
-  border-color:#d32f2f !important;
-  box-shadow: 0 0 0 3px rgba(211,47,47,0.12);
-}
-
-/* ===== 숫자 마커 ===== */
+/* 숫자 마커 */
 .numMarker{
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 999px;
   background: #111;
   color: #fff;
   font-weight: 800;
   font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-  border: 2px solid #fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
 
-/* ===== Share box ===== */
-.shareHelp{ margin-top: 10px; }
-.shareHelpTitle{ font-weight: 700; margin-bottom: 6px; font-size: 13px; color:#333; }
-.shareMsg{
-  width: 100%;
-  min-height: 90px;
-  padding: 10px;
-  border: 1px solid #ddd;
+/* 인앱 배너 */
+.inAppBanner{
+  margin-top: 14px;
+  border: 1px solid #ffe2a8;
+  background: #fff7e6;
+  border-radius: 14px;
+  padding: 12px;
+}
+.inAppTitle{ font-weight: 800; margin-bottom: 6px; }
+.inAppHint{ color:#333; font-size: 13px; line-height: 1.35; }
+.inAppBtns{ display:flex; gap: 8px; margin-top: 10px; }
+.inAppBtns button{
+  flex:1;
+  height: 44px;
   border-radius: 12px;
-  resize: vertical;
+  border: 1px solid #e1c48b;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* iOS 모달 */
+.modal { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; }
+.modalBackdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+.modalCard {
+  position: relative;
+  width: min(520px, calc(100vw - 24px));
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+}
+.modalHeader{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eee;
+}
+.modalTitle{ font-weight: 900; }
+.modalClose{
+  width: 36px; height: 36px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
+.modalBody{ padding: 12px 14px; }
+.guideImg{
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  display:block;
+}
+.modalActions{
+  display:flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.modalActions button{
+  flex:1;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background:#fff;
+  cursor:pointer;
+}
+.modalHint{
+  margin-top: 10px;
+  color:#444;
   font-size: 13px;
+  line-height: 1.35;
+}
+
+/* ===== 모바일 ===== */
+@media (max-width: 980px) {
+  .layout { grid-template-columns: 1fr; }
+  .left { border-right: 0; border-bottom: 1px solid #e5e5e5; }
+}
+
+@media (max-width: 520px) {
+  .left, .right { padding: 12px; }
+  .title { font-size: 18px; }
+  .hint { font-size: 12px; }
+
+  .row {
+    grid-template-columns: 28px 1fr 52px;
+    grid-template-areas:
+      "idx customer del"
+      "idx address  del";
+    gap: 8px;
+    align-items: center;
+  }
+  .idxBadge { grid-area: idx; }
+  .row input:nth-child(2) { grid-area: customer; } /* customer */
+  .row input:nth-child(3) { grid-area: address; }  /* address */
+  .row button { grid-area: del; height: 44px; }
+
+  .actions { flex-direction: column; }
+  .actions button { width: 100%; }
+
+  .midActions { justify-content: stretch; }
+  .midActions button { width: 100%; }
+
+  .map { height: 320px; }
+  .inAppBtns{ flex-direction: column; }
 }
