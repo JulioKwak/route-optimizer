@@ -30,11 +30,11 @@ const openExternalBtn = document.getElementById("openExternalBtn");
 const copyLinkBtn = document.getElementById("copyLinkBtn");
 const inAppHint = document.getElementById("inAppHint");
 
-// iOS 안내 모달
-const iosGuideModal = document.getElementById("iosGuideModal");
-const iosGuideClose = document.getElementById("iosGuideClose");
-const iosCopyLink = document.getElementById("iosCopyLink");
-const iosOpenAgain = document.getElementById("iosOpenAgain");
+// ✅ iOS 인라인 안내(접기/펼치기)
+const iosGuideInline = document.getElementById("iosGuideInline");
+const iosGuideToggle = document.getElementById("iosGuideToggle");
+const iosGuidePanel = document.getElementById("iosGuidePanel");
+const iosInlineCopyLink = document.getElementById("iosInlineCopyLink");
 
 // Map
 let nmap = null;
@@ -103,7 +103,7 @@ function fromBase64Url(b64url) {
 function buildShareUrl() {
   const payload = {
     v: 1,
-    rows: state.rows.map(r => ({
+    rows: state.rows.map((r) => ({
       customer: (r.customer || "").trim(),
       address: (r.address || "").trim(),
     })),
@@ -122,7 +122,7 @@ function readSharedDataFromUrl() {
   try {
     const obj = JSON.parse(fromBase64Url(data));
     if (!obj || !Array.isArray(obj.rows) || obj.rows.length < 2) return null;
-    const rows = obj.rows.slice(0, MAX).map(r => ({
+    const rows = obj.rows.slice(0, MAX).map((r) => ({
       customer: (r.customer ?? "").toString(),
       address: (r.address ?? "").toString(),
     }));
@@ -237,7 +237,11 @@ async function fetchRoutePath(orderedPoints) {
   });
   const text = await routeRes.text();
   let routeData = {};
-  try { routeData = JSON.parse(text); } catch { routeData = { raw: text }; }
+  try {
+    routeData = JSON.parse(text);
+  } catch {
+    routeData = { raw: text };
+  }
   if (!routeRes.ok || routeData.error) throw new Error(routeData.error || `directions api error (HTTP ${routeRes.status})`);
   return routeData;
 }
@@ -256,11 +260,15 @@ function optimizeOrderByNearest(points) {
 
   for (let step = 1; step < n; step++) {
     const last = order[order.length - 1];
-    let best = -1, bestD = Infinity;
+    let best = -1,
+      bestD = Infinity;
     for (let i = 1; i < n; i++) {
       if (visited[i]) continue;
       const d = dist2(points[last], points[i]);
-      if (d < bestD) { bestD = d; best = i; }
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
     }
     visited[best] = true;
     order.push(best);
@@ -270,8 +278,11 @@ function optimizeOrderByNearest(points) {
 
 // ===== Map =====
 function clearMap() {
-  if (routeLine) { routeLine.setMap(null); routeLine = null; }
-  markers.forEach(m => m.setMap(null));
+  if (routeLine) {
+    routeLine.setMap(null);
+    routeLine = null;
+  }
+  markers.forEach((m) => m.setMap(null));
   markers = [];
 }
 
@@ -315,11 +326,11 @@ function drawRouteOnMap(pathLatLng, orderedPoints) {
     markers.push(m);
   });
 
-  const linePath = pathLatLng.map(p => new naver.maps.LatLng(p.lat, p.lng));
+  const linePath = pathLatLng.map((p) => new naver.maps.LatLng(p.lat, p.lng));
   routeLine = new naver.maps.Polyline({ map: nmap, path: linePath, strokeWeight: 5 });
 
   const bounds = new naver.maps.LatLngBounds();
-  linePath.forEach(ll => bounds.extend(ll));
+  linePath.forEach((ll) => bounds.extend(ll));
   nmap.fitBounds(bounds, { top: 30, right: 30, bottom: 30, left: 30 });
 }
 
@@ -337,7 +348,7 @@ async function renderResult(order) {
   // 지도 경로
   try {
     showProgress("지도 경로 생성 중...", 98);
-    const orderedPoints = order.map(i => state.coords[i]);
+    const orderedPoints = order.map((i) => state.coords[i]);
     const routeData = await fetchRoutePath(orderedPoints);
     if (Array.isArray(routeData.path) && routeData.path.length) {
       drawRouteOnMap(routeData.path, orderedPoints);
@@ -364,7 +375,7 @@ async function runOptimize() {
 
     showProgress("좌표 변환 준비 중...", 0);
 
-    const addrs = state.rows.map(r => r.address.trim());
+    const addrs = state.rows.map((r) => r.address.trim());
     const total = addrs.length;
 
     const coords = await mapLimit(addrs, CONCURRENCY, async (addr, i) => {
@@ -424,32 +435,25 @@ async function copyText(text) {
   }
 }
 
-// iOS 모달
-function openIosGuideModal() {
-  if (!iosGuideModal) return;
-  iosGuideModal.hidden = false;
-}
-function closeIosGuideModal() {
-  if (!iosGuideModal) return;
-  iosGuideModal.hidden = true;
+// ✅ iOS 인라인 안내(접기/펼치기) 제어
+function setIosGuideExpanded(expanded) {
+  if (!iosGuideToggle || !iosGuidePanel) return;
+  iosGuideToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+  iosGuidePanel.hidden = !expanded;
 }
 
-// 모달 이벤트(한 번만)
-if (iosGuideClose) iosGuideClose.addEventListener("click", closeIosGuideModal);
-if (iosGuideModal) {
-  iosGuideModal.addEventListener("click", (e) => {
-    const t = e.target;
-    if (t && t.dataset && t.dataset.close) closeIosGuideModal();
+if (iosGuideToggle) {
+  iosGuideToggle.addEventListener("click", () => {
+    const expanded = iosGuideToggle.getAttribute("aria-expanded") === "true";
+    setIosGuideExpanded(!expanded);
   });
 }
-if (iosCopyLink) {
-  iosCopyLink.addEventListener("click", async () => {
+
+if (iosInlineCopyLink) {
+  iosInlineCopyLink.addEventListener("click", async () => {
     const ok = await copyText(location.href);
     setMsg(ok ? "링크를 복사했습니다." : "복사 실패");
   });
-}
-if (iosOpenAgain) {
-  iosOpenAgain.addEventListener("click", closeIosGuideModal);
 }
 
 function showInAppBannerIfNeeded() {
@@ -460,14 +464,15 @@ function showInAppBannerIfNeeded() {
   inAppBanner.hidden = false;
 
   if (isAndroid()) {
-    inAppHint.textContent = "Android: 상단 “외부 브라우저로 열기(Chrome 권장)”를 사용하세요.";
+    if (inAppHint) inAppHint.textContent = "Android: 상단 “외부 브라우저로 열기(Chrome 권장)”를 사용하세요.";
     if (openExternalBtn) openExternalBtn.textContent = "외부 브라우저로 열기";
   } else if (isIOS()) {
-    // ✅ iOS는 강제 불가 → 안내 모달만
-    inAppHint.textContent = "iPhone: 아래 버튼을 눌러 ‘Safari에서 열기’ 안내를 확인하세요.";
-    if (openExternalBtn) openExternalBtn.textContent = "Safari에서 열기 안내";
+    if (inAppHint) inAppHint.textContent = "iPhone: ‘Safari에서 열기’로 다시 열어야 정상 동작합니다.";
+    if (openExternalBtn) openExternalBtn.textContent = "Safari에서 열기 안내 보기";
+    if (iosGuideInline) iosGuideInline.hidden = false; // ✅ 인라인 섹션 노출
+    setIosGuideExpanded(false);
   } else {
-    inAppHint.textContent = "인앱 브라우저에서는 일부 기능이 제한될 수 있습니다.";
+    if (inAppHint) inAppHint.textContent = "인앱 브라우저에서는 일부 기능이 제한될 수 있습니다.";
   }
 
   if (copyLinkBtn) {
@@ -483,8 +488,10 @@ function showInAppBannerIfNeeded() {
       const url = location.href;
 
       if (isIOS()) {
-        await copyText(url);   // 편의: 링크 복사
-        openIosGuideModal();   // 안내 이미지
+        await copyText(url); // 편의: 링크 복사
+        if (iosGuideInline) iosGuideInline.hidden = false;
+        setIosGuideExpanded(true); // ✅ 바로 펼쳐서 이미지 보이게
+        iosGuideInline?.scrollIntoView?.({ behavior: "smooth", block: "start" });
         return;
       }
 
@@ -549,8 +556,7 @@ if (shareBtn) {
     if (shareUrlEl) shareUrlEl.value = url;
     if (shareBox) shareBox.hidden = false;
 
-    const guide =
-`[경로 최적화 링크]
+    const guide = `[경로 최적화 링크]
 ${url}
 
 ※ 카카오톡에서 누르면 앱 안(인앱브라우저)으로 열릴 수 있습니다.
@@ -605,7 +611,7 @@ if (copyMsgBtn) {
     naverBtn.textContent = "경로 계산 후 활성화됩니다";
   }
 
-  // 인앱이면 안내(✅ iOS는 안내 모달 버튼)
+  // 인앱이면 안내(✅ iOS는 인라인 안내)
   showInAppBannerIfNeeded();
 
   // initMap callback이 못 도는 경우(네이버 SDK 로딩 지연 대비)
