@@ -91,5 +91,32 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
   <script src="app.js"></script>
+
+  <!-- iOS Safari 열기 안내 모달 -->
+<div id="iosGuideModal" class="modal" hidden>
+  <div class="modalBackdrop" data-close="1"></div>
+  <div class="modalCard" role="dialog" aria-modal="true" aria-label="Safari에서 열기 안내">
+    <div class="modalHeader">
+      <div class="modalTitle">iPhone: Safari에서 열기</div>
+      <button id="iosGuideClose" class="modalClose" type="button" aria-label="닫기">✕</button>
+    </div>
+
+    <div class="modalBody">
+      <img
+        src="ios-safari-guide.png"
+        alt="Safari에서 열기 안내 캡처"
+        class="guideImg"
+      />
+      <div class="modalActions">
+        <button id="iosCopyLink" type="button">링크 복사</button>
+        <button id="iosOpenAgain" type="button">다시 시도</button>
+      </div>
+      <div class="modalHint">
+        화면에서 공유(⬆︎) 메뉴에서 “Safari에서 열기”를 선택하세요.
+      </div>
+    </div>
+  </div>
+</div>
+  
 </body>
 </html>
