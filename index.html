@@ -59,6 +59,28 @@
           <button id="openExternalBtn" type="button">Safari에서 열기 안내</button>
           <button id="copyLinkBtn" type="button">링크 복사</button>
         </div>
+
+       <!-- ✅ iOS 안내: 페이지 내 접기/펼치기 -->
+        <div id="iosGuideInline" class="iosGuideInline" hidden>
+          <button id="iosGuideToggle" type="button" class="iosGuideToggle" aria-expanded="false">
+            iPhone: “Safari에서 열기” 안내 보기
+          </button>
+      
+          <div id="iosGuidePanel" class="iosGuidePanel" hidden>
+            <img
+              src="ios-safari-guide.png"
+              alt="Safari에서 열기 안내"
+              class="iosGuideImg"
+              loading="lazy"
+            />
+            <div class="iosGuideActions">
+              <button id="iosInlineCopyLink" type="button">링크 복사</button>
+            </div>
+            <div class="iosGuideHint">
+              화면의 공유(⬆︎) 버튼 → “Safari에서 열기”를 선택하세요.
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
 
@@ -90,30 +112,5 @@
 
   <script src="app.js"></script>
 
-  <!-- iOS Safari 열기 안내 모달 -->
-  <div id="iosGuideModal" class="modal" hidden>
-    <div class="modalBackdrop" data-close="1"></div>
-    <div class="modalCard" role="dialog" aria-modal="true" aria-label="Safari에서 열기 안내">
-      <div class="modalHeader">
-        <div class="modalTitle">iPhone: Safari에서 열기</div>
-        <button id="iosGuideClose" class="modalClose" type="button" aria-label="닫기">✕</button>
-      </div>
-
-      <div class="modalBody">
-        <img
-          src="ios-safari-guide.png"
-          alt="Safari에서 열기 안내 캡처"
-          class="guideImg"
-        />
-        <div class="modalActions">
-          <button id="iosCopyLink" type="button">링크 복사</button>
-          <button id="iosOpenAgain" type="button">확인</button>
-        </div>
-        <div class="modalHint">
-          화면의 공유(⬆︎) 버튼을 눌러 “Safari에서 열기”를 선택하세요.
-        </div>
-      </div>
-    </div>
-  </div>
 </body>
 </html>
