@@ -555,3 +555,34 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "No
   .map { height: 320px; }
   .inAppBtns{ flex-direction: column; }
 }
+
+/* ===== Footer ===== */
+.siteFooter{
+  border-top: 1px solid #eee;
+  padding: 14px 16px;
+  color: #666;
+  font-size: 12px;
+  background: #fff;
+}
+
+.footerInner{
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footerLine{
+  display: flex;
+  gap: 10px;
+  line-height: 1.5;
+  flex-wrap: wrap;
+}
+
+.footerLabel{
+  font-weight: 700;
+  color: #444;
+  min-width: 86px;
+}
+
+.footerValue{
+  color: #666;
+}
