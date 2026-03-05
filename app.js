@@ -621,7 +621,7 @@ if (copyMsgBtn) {
   ensureMap({ lat: 37.3828, lng: 126.6569 });
 
   // 모바일 링크 진입(data=...)이면 자동 최적화
-  if (restored) runOptimize();
+  // if (restored) runOptimize();
 
   // 카톡/인앱이면 배너 표시(외부 브라우저 유도)
   showInAppBannerIfNeeded();
