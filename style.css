@@ -220,6 +220,33 @@ body {
   box-shadow: 0 0 0 3px rgba(211,47,47,0.12);
 }
 
+/* ===== 인앱 브라우저 배너 ===== */
+.inAppBanner{
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fffbe6;
+  margin-bottom: 12px;
+}
+.inAppTitle{ font-weight: 800; margin-bottom: 6px; }
+.inAppDesc{ font-size: 13px; color:#444; margin-bottom: 10px; }
+.inAppBtns{ display:flex; gap:8px; flex-wrap:wrap; }
+.inAppBtns button{
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor:pointer;
+}
+.inAppHint{ margin-top: 8px; font-size: 12px; color:#666; }
+
+/* ===== 주소 실패 표시 ===== */
+.row input.err{
+  border-color:#d32f2f !important;
+  box-shadow: 0 0 0 3px rgba(211,47,47,0.12);
+}
+
+/* ===== 숫자 마커 ===== */
 .numMarker{
   width: 24px;
   height: 24px;
@@ -233,4 +260,17 @@ body {
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
   border: 2px solid #fff;
+}
+
+/* ===== Share box ===== */
+.shareHelp{ margin-top: 10px; }
+.shareHelpTitle{ font-weight: 700; margin-bottom: 6px; font-size: 13px; color:#333; }
+.shareMsg{
+  width: 100%;
+  min-height: 90px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  resize: vertical;
+  font-size: 13px;
 }
