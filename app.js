@@ -438,8 +438,15 @@ async function copyText(text) {
 // ✅ iOS 인라인 안내(접기/펼치기) 제어
 function setIosGuideExpanded(expanded) {
   if (!iosGuideToggle || !iosGuidePanel) return;
+
   iosGuideToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
   iosGuidePanel.hidden = !expanded;
+
+  if (openExternalBtn) {
+    openExternalBtn.textContent = expanded
+      ? "Safari 안내 닫기"
+      : "Safari에서 열기 안내 보기";
+  }
 }
 
 if (iosGuideToggle) {
@@ -488,10 +495,23 @@ function showInAppBannerIfNeeded() {
       const url = location.href;
 
       if (isIOS()) {
+      
         await copyText(url); // 편의: 링크 복사
+      
         if (iosGuideInline) iosGuideInline.hidden = false;
-        setIosGuideExpanded(true); // ✅ 바로 펼쳐서 이미지 보이게
-        iosGuideInline?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+      
+        const expanded =
+          iosGuideToggle?.getAttribute("aria-expanded") === "true";
+      
+        setIosGuideExpanded(!expanded); // ← 토글
+      
+        if (!expanded) {
+          iosGuideInline?.scrollIntoView?.({
+            behavior: "smooth",
+            block: "start"
+          });
+        }
+      
         return;
       }
 
