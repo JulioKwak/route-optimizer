@@ -514,6 +514,6 @@ if (copyBtn) {
     runOptimize();
   } else {
     // 기본 지도는 필요할 때만 그려도 되지만, 초기 회색이 싫으면 아래 주석 해제
-    // ensureMap({ lat: 37.5665, lng: 126.9780 });
+    ensureMap({ lat: 37.5665, lng: 126.9780 });
   }
 })();
