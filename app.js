@@ -1,3 +1,4 @@
+// app.js
 // ===== Config =====
 const MAX = 15;
 const CONCURRENCY = 4;
@@ -15,11 +16,6 @@ const progressWrap = document.getElementById("progressWrap");
 const progressText = document.getElementById("progressText");
 const progressBarFill = document.getElementById("progressBarFill");
 
-// ✅ Map overlay card
-const routeCard = document.getElementById("routeCard");
-const cardTimeEl = document.getElementById("cardTime");
-const cardDistEl = document.getElementById("cardDist");
-
 // Share
 const shareBtn = document.getElementById("shareBtn");
 const shareBox = document.getElementById("shareBox");
@@ -31,16 +27,21 @@ const copyMsgBtn = document.getElementById("copyMsgBtn");
 
 // In-app banner
 const inAppBanner = document.getElementById("inAppBanner");
-const openExternalBtn = document.getElementById("openExternalBtn"); // Android에서만 사용 (iOS에선 hidden)
+const openExternalBtn = document.getElementById("openExternalBtn");
 const copyLinkBtn = document.getElementById("copyLinkBtn");
 const inAppHint = document.getElementById("inAppHint");
 
-// ✅ iOS 인라인 안내(파란 글씨 토글만 사용)
+// iOS inline guide (toggle)
 const iosGuideInline = document.getElementById("iosGuideInline");
 const iosGuideToggle = document.getElementById("iosGuideToggle");
 const iosGuidePanel = document.getElementById("iosGuidePanel");
 
-// Map
+// Map + Card
+const routeCard = document.getElementById("routeCard");
+const cardTimeEl = document.getElementById("cardTime");
+const cardDistEl = document.getElementById("cardDist");
+
+// Map state
 let nmap = null;
 let routeLine = null;
 let markers = [];
@@ -54,8 +55,9 @@ let state = {
   errorMap: {},
 };
 
-// ===== Map init callback =====
+// ===== Map init callback (네이버 SDK callback=initMap) =====
 window.initMap = function () {
+  // 초기 회색 방지용 기본 지도(송도 벤처로 82 근처)
   ensureMap({ lat: 37.3828, lng: 126.6569 });
 };
 
@@ -86,60 +88,73 @@ function isAndroid() {
 function isIOS() {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
+// 카톡/인앱 브라우저 감지(대부분 커버)
 function isInAppBrowser() {
   const ua = navigator.userAgent || "";
   return /KAKAOTALK|FBAN|FBAV|Instagram|Line|NAVER\(inapp\)/i.test(ua);
 }
 
-// base64url
+// base64url (legacy data=용)
 function toBase64Url(str) {
   const b64 = btoa(unescape(encodeURIComponent(str)));
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 function fromBase64Url(b64url) {
-  const b64 =
-    b64url.replace(/-/g, "+").replace(/_/g, "/") +
-    "===".slice((b64url.length + 3) % 4);
+  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((b64url.length + 3) % 4);
   return decodeURIComponent(escape(atob(b64)));
 }
 
-// format
-function formatDuration(sec) {
-  sec = Math.max(0, Math.round(Number(sec || 0)));
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  if (h > 0) return `${h}시간 ${m}분`;
-  return `${m}분`;
-}
-function formatDistance(meters) {
-  meters = Math.max(0, Math.round(Number(meters || 0)));
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1)}km`;
-  return `${meters}m`;
-}
-function toSecondsSmart(durationMaybeMsOrSec) {
-  const n = Number(durationMaybeMsOrSec);
-  if (!Number.isFinite(n)) return null;
-  // 네이버 summary.duration은 ms인 경우가 많아서, 큰 값이면 ms로 판단
-  return n > 100000 ? Math.round(n / 1000) : Math.round(n);
-}
-
-// Share URL
-function buildShareUrl() {
-  const payload = {
+// ===== Share (short link via KV) =====
+function buildPayloadFromState() {
+  return {
     v: 1,
     rows: state.rows.map((r) => ({
       customer: (r.customer || "").trim(),
       address: (r.address || "").trim(),
     })),
   };
-  const encoded = toBase64Url(JSON.stringify(payload));
+}
+
+async function createShortShareUrl() {
+  const payload = buildPayloadFromState();
+
+  const res = await fetch("/api/share", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ payload }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error || !data.id) throw new Error(data.error || "짧은 링크 생성 실패");
+
   const u = new URL(location.href);
-  u.searchParams.set("data", encoded);
+  u.searchParams.delete("data");
+  u.searchParams.set("k", data.id);
   u.hash = "";
   return u.toString();
 }
 
-function readSharedDataFromUrl() {
+async function readSharedDataFromKey() {
+  const u = new URL(location.href);
+  const k = u.searchParams.get("k");
+  if (!k) return null;
+
+  const res = await fetch(`/api/load?k=${encodeURIComponent(k)}`);
+  if (!res.ok) return null;
+
+  const payload = await res.json().catch(() => null);
+  if (!payload || !Array.isArray(payload.rows) || payload.rows.length < 2) return null;
+
+  const rows = payload.rows.slice(0, MAX).map((r) => ({
+    customer: (r.customer ?? "").toString(),
+    address: (r.address ?? "").toString(),
+  }));
+  while (rows.length < 2) rows.push({ customer: "", address: "" });
+  return rows;
+}
+
+// legacy data= 복원 (하위호환)
+function readSharedDataFromUrlLegacy() {
   const u = new URL(location.href);
   const data = u.searchParams.get("data");
   if (!data) return null;
@@ -157,6 +172,7 @@ function readSharedDataFromUrl() {
   }
 }
 
+// ===== Validate =====
 function validate() {
   if (!state.rows[0].address.trim()) return "시작 주소를 입력해 주세요.";
   for (let i = 1; i < state.rows.length; i++) {
@@ -165,18 +181,17 @@ function validate() {
   return null;
 }
 
+// 동시성 제한
 async function mapLimit(items, limit, worker) {
   const results = new Array(items.length);
   let idx = 0;
-  const runners = new Array(Math.min(limit, items.length))
-    .fill(0)
-    .map(async () => {
-      while (true) {
-        const cur = idx++;
-        if (cur >= items.length) break;
-        results[cur] = await worker(items[cur], cur);
-      }
-    });
+  const runners = new Array(Math.min(limit, items.length)).fill(0).map(async () => {
+    while (true) {
+      const cur = idx++;
+      if (cur >= items.length) break;
+      results[cur] = await worker(items[cur], cur);
+    }
+  });
   await Promise.all(runners);
   return results;
 }
@@ -287,11 +302,15 @@ function optimizeOrderByNearest(points) {
 
   for (let step = 1; step < n; step++) {
     const last = order[order.length - 1];
-    let best = -1, bestD = Infinity;
+    let best = -1,
+      bestD = Infinity;
     for (let i = 1; i < n; i++) {
       if (visited[i]) continue;
       const d = dist2(points[last], points[i]);
-      if (d < bestD) { bestD = d; best = i; }
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
     }
     visited[best] = true;
     order.push(best);
@@ -301,8 +320,11 @@ function optimizeOrderByNearest(points) {
 
 // ===== Map =====
 function clearMap() {
-  if (routeLine) { routeLine.setMap(null); routeLine = null; }
-  markers.forEach(m => m.setMap(null));
+  if (routeLine) {
+    routeLine.setMap(null);
+    routeLine = null;
+  }
+  markers.forEach((m) => m.setMap(null));
   markers = [];
 }
 
@@ -332,6 +354,7 @@ function drawRouteOnMap(pathLatLng, orderedPoints) {
 
   clearMap();
 
+  // 숫자 마커
   orderedPoints.forEach((p, i) => {
     const m = new naver.maps.Marker({
       position: new naver.maps.LatLng(p.lat, p.lng),
@@ -345,56 +368,53 @@ function drawRouteOnMap(pathLatLng, orderedPoints) {
     markers.push(m);
   });
 
-  const linePath = pathLatLng.map(p => new naver.maps.LatLng(p.lat, p.lng));
+  const linePath = pathLatLng.map((p) => new naver.maps.LatLng(p.lat, p.lng));
   routeLine = new naver.maps.Polyline({ map: nmap, path: linePath, strokeWeight: 5 });
 
   const bounds = new naver.maps.LatLngBounds();
-  linePath.forEach(ll => bounds.extend(ll));
+  linePath.forEach((ll) => bounds.extend(ll));
   nmap.fitBounds(bounds, { top: 30, right: 30, bottom: 30, left: 30 });
 }
 
-// ===== Legs extraction =====
-function getPointLabelByRowIndex(rowIdx) {
-  const r = state.rows[rowIdx];
-  const name = (r.customer || "").trim();
-  const addr = (r.address || "").trim();
-  if (name && addr) return `${name} / ${addr}`;
-  return addr || name || "-";
+// ===== Format =====
+function formatDistance(meters) {
+  if (meters == null || !isFinite(meters)) return "-";
+  if (meters >= 1000) return `${(meters / 1000).toFixed(1)}km`;
+  return `${Math.round(meters)}m`;
 }
 
-function extractLegs(routeData, order) {
-  // 기대: waypoints(=중간지점 각 구간), goal(=마지막 구간)
-  const legs = [];
-  const wp = Array.isArray(routeData.waypoints) ? routeData.waypoints : [];
-
-  // 0..(n-2) legs
-  for (let i = 0; i < order.length - 1; i++) {
-    let dur = null, dist = null;
-
-    if (i < wp.length) {
-      dur = wp[i]?.duration;
-      dist = wp[i]?.distance;
-    } else {
-      dur = routeData.goal?.duration ?? null;
-      dist = routeData.goal?.distance ?? null;
-    }
-
-    const sec = toSecondsSmart(dur);
-    const meters = Number(dist);
-    legs.push({
-      fromRowIdx: order[i],
-      toRowIdx: order[i + 1],
-      sec: sec,
-      meters: Number.isFinite(meters) ? meters : null,
-    });
-  }
-  return legs;
+function formatDuration(sec) {
+  if (sec == null || !isFinite(sec)) return "-";
+  const s = Math.max(0, Math.round(sec));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h > 0) return `${h}시간 ${m}분`;
+  return `${m}분`;
 }
 
 // ===== Result =====
+function updateRouteCard(summary) {
+  if (!routeCard || !cardTimeEl || !cardDistEl) return;
+
+  if (!summary) {
+    routeCard.hidden = true;
+    cardTimeEl.textContent = "-";
+    cardDistEl.textContent = "-";
+    return;
+  }
+
+  const dist = summary.distance;
+  const durMs = summary.duration;
+
+  routeCard.hidden = false;
+  cardTimeEl.textContent = formatDuration(durMs != null ? durMs / 1000 : null);
+  cardDistEl.textContent = formatDistance(dist);
+}
+
 async function renderResult(order) {
   // 결과 리스트(✅ "1. 1." 중복 제거: 텍스트에 번호를 넣지 않음)
-  resultList.innerHTML = "";
+  if (resultList) resultList.innerHTML = "";
+
   order.forEach((idx) => {
     const r = state.rows[idx];
     const label = idx === 0 ? "시작" : `지점 ${idx}`;
@@ -403,35 +423,30 @@ async function renderResult(order) {
     resultList.appendChild(li);
   });
 
-  if (routeCard) routeCard.hidden = true;
-  if (cardTimeEl) cardTimeEl.textContent = "-";
-  if (cardDistEl) cardDistEl.textContent = "-";
+  updateRouteCard(null);
 
+  // 지도 경로 + 총 시간/거리 카드
   try {
     showProgress("지도 경로 생성 중...", 98);
 
-    const orderedPoints = order.map(i => state.coords[i]);
+    const orderedPoints = order.map((i) => state.coords[i]);
     const routeData = await fetchRoutePath(orderedPoints);
 
-    // 총 시간/거리: 네이버 내비와 최대한 동일하게(= summary값 우선)
-    const totalSec = toSecondsSmart(routeData.summary?.duration ?? routeData.totalDurationSec);
-    const totalMeters = Number(routeData.summary?.distance ?? routeData.totalDistanceMeters);
-
-    if (routeCard) routeCard.hidden = false;
-    if (cardTimeEl) cardTimeEl.textContent = totalSec != null ? formatDuration(totalSec) : "-";
-    if (cardDistEl) cardDistEl.textContent = Number.isFinite(totalMeters) ? formatDistance(totalMeters) : "-";
-
-    // 지도 경로
+    // 지도 polyline
     if (Array.isArray(routeData.path) && routeData.path.length) {
       drawRouteOnMap(routeData.path, orderedPoints);
     }
 
+    // ✅ 총 이동시간/거리 (routeData.summary 기준)
+    if (routeData && routeData.summary) {
+      updateRouteCard(routeData.summary);
+    } else {
+      updateRouteCard(null);
+    }
   } catch (e) {
     console.warn(e);
     setMsg(e.message);
-    if (routeCard) routeCard.hidden = true;
-    if (cardTimeEl) cardTimeEl.textContent = "-";
-    if (cardDistEl) cardDistEl.textContent = "-";
+    updateRouteCard(null);
   }
 }
 
@@ -451,7 +466,7 @@ async function runOptimize() {
 
     showProgress("좌표 변환 준비 중...", 0);
 
-    const addrs = state.rows.map(r => r.address.trim());
+    const addrs = state.rows.map((r) => r.address.trim());
     const total = addrs.length;
 
     const coords = await mapLimit(addrs, CONCURRENCY, async (addr, i) => {
@@ -511,18 +526,11 @@ async function copyText(text) {
   }
 }
 
-// ✅ iOS 인라인 안내(파란 글씨 토글)
+// ===== In-app banner + iOS inline guide =====
 function setIosGuideExpanded(expanded) {
   if (!iosGuideToggle || !iosGuidePanel) return;
   iosGuideToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
   iosGuidePanel.hidden = !expanded;
-  iosGuideToggle.textContent = expanded ? "Safari에서 열기 안내 닫기" : "Safari에서 열기 안내 보기";
-}
-if (iosGuideToggle) {
-  iosGuideToggle.addEventListener("click", () => {
-    const expanded = iosGuideToggle.getAttribute("aria-expanded") === "true";
-    setIosGuideExpanded(!expanded);
-  });
 }
 
 function showInAppBannerIfNeeded() {
@@ -532,23 +540,7 @@ function showInAppBannerIfNeeded() {
 
   inAppBanner.hidden = false;
 
-  if (isAndroid()) {
-    if (inAppHint) inAppHint.textContent = "Android: 상단 “외부 브라우저로 열기(Chrome 권장)”를 사용하세요.";
-    if (openExternalBtn) {
-      openExternalBtn.hidden = false;
-      openExternalBtn.textContent = "외부 브라우저로 열기";
-    }
-    if (iosGuideInline) iosGuideInline.hidden = true;
-  } else if (isIOS()) {
-    if (inAppHint) inAppHint.textContent = "iPhone: 공유(⬆︎) 버튼 → “Safari에서 열기”로 다시 열어주세요.";
-    if (openExternalBtn) openExternalBtn.hidden = true;
-
-    if (iosGuideInline) iosGuideInline.hidden = false;
-    setIosGuideExpanded(false);
-  } else {
-    if (inAppHint) inAppHint.textContent = "인앱 브라우저에서는 일부 기능이 제한될 수 있습니다.";
-  }
-
+  // 공통: 링크 복사 버튼
   if (copyLinkBtn) {
     copyLinkBtn.onclick = async () => {
       const ok = await copyText(location.href);
@@ -556,68 +548,106 @@ function showInAppBannerIfNeeded() {
     };
   }
 
-  if (openExternalBtn) {
-    openExternalBtn.onclick = async () => {
-      const url = location.href;
-      if (isIOS()) return;
-
-      if (isAndroid()) {
+  if (isAndroid()) {
+    if (inAppHint) inAppHint.textContent = "Android: 상단 “외부 브라우저로 열기(Chrome 권장)”를 사용하세요.";
+    if (openExternalBtn) {
+      openExternalBtn.hidden = false;
+      openExternalBtn.textContent = "외부 브라우저로 열기";
+      openExternalBtn.onclick = async () => {
+        const url = location.href;
         const intentUrl = makeChromeIntentUrl(url);
         location.href = intentUrl;
         setTimeout(() => window.open(url, "_blank"), 800);
-        return;
-      }
-      window.open(url, "_blank");
-    };
+      };
+    }
+    if (iosGuideInline) iosGuideInline.hidden = true;
+  } else if (isIOS()) {
+    if (inAppHint) inAppHint.textContent = "iPhone: 아래 ‘Safari에서 열기 안내 보기’를 눌러 확인하세요.";
+    // iOS는 회색 버튼(외부브라우저 열기) 숨김 유지
+    if (openExternalBtn) openExternalBtn.hidden = true;
+
+    // iOS 인라인 안내만 표시
+    if (iosGuideInline) iosGuideInline.hidden = false;
+
+    if (iosGuideToggle && iosGuidePanel) {
+      // 초기 접힘
+      setIosGuideExpanded(false);
+
+      // 토글 클릭(접기/펼치기)
+      iosGuideToggle.onclick = () => {
+        const expanded = iosGuideToggle.getAttribute("aria-expanded") === "true";
+        setIosGuideExpanded(!expanded);
+      };
+    }
+  } else {
+    if (inAppHint) inAppHint.textContent = "인앱 브라우저에서는 일부 기능이 제한될 수 있습니다.";
+    if (openExternalBtn) {
+      openExternalBtn.hidden = false;
+      openExternalBtn.textContent = "새 창으로 열기";
+      openExternalBtn.onclick = () => window.open(location.href, "_blank");
+    }
+    if (iosGuideInline) iosGuideInline.hidden = true;
   }
 }
 
 // ===== Events =====
-addBtn.addEventListener("click", () => {
-  setMsg("");
-  if (state.rows.length >= MAX) return setMsg(`최대 ${MAX}건까지 추가할 수 있습니다.`);
-  state.rows.push({ customer: "", address: "" });
-  renderRows();
-});
+if (addBtn) {
+  addBtn.addEventListener("click", () => {
+    setMsg("");
+    if (state.rows.length >= MAX) return setMsg(`최대 ${MAX}건까지 추가할 수 있습니다.`);
+    state.rows.push({ customer: "", address: "" });
+    renderRows();
+  });
+}
 
-optBtn.addEventListener("click", runOptimize);
+if (optBtn) optBtn.addEventListener("click", runOptimize);
 
-naverBtn.addEventListener("click", () => {
-  if (!state.optimized || !state.coords) return;
+if (naverBtn) {
+  naverBtn.addEventListener("click", () => {
+    if (!state.optimized || !state.coords) return;
 
-  const order = state.optimized;
-  const fromIdx = order[state.currentLeg];
-  const toIdx = order[state.currentLeg + 1];
+    const order = state.optimized;
+    const fromIdx = order[state.currentLeg];
+    const toIdx = order[state.currentLeg + 1];
 
-  if (toIdx == null) {
-    naverBtn.textContent = "완료(마지막 지점)";
-    naverBtn.disabled = true;
-    return;
-  }
+    if (toIdx == null) {
+      naverBtn.textContent = "완료(마지막 지점)";
+      naverBtn.disabled = true;
+      return;
+    }
 
-  const fromC = state.coords[fromIdx];
-  const toC = state.coords[toIdx];
+    const fromC = state.coords[fromIdx];
+    const toC = state.coords[toIdx];
 
-  const fromName = encodeURIComponent(state.rows[fromIdx].customer || "출발");
-  const toName = encodeURIComponent(state.rows[toIdx].customer || "도착");
+    const fromName = encodeURIComponent(state.rows[fromIdx].customer || "출발");
+    const toName = encodeURIComponent(state.rows[toIdx].customer || "도착");
 
-  const deeplink =
-    `nmap://route/car?` +
-    `slat=${fromC.lat}&slng=${fromC.lng}&sname=${fromName}` +
-    `&dlat=${toC.lat}&dlng=${toC.lng}&dname=${toName}`;
+    const deeplink =
+      `nmap://route/car?` +
+      `slat=${fromC.lat}&slng=${fromC.lng}&sname=${fromName}` +
+      `&dlat=${toC.lat}&dlng=${toC.lng}&dname=${toName}`;
 
-  const webUrl = `https://map.naver.com/v5/search/${encodeURIComponent(state.rows[toIdx].address)}`;
+    const webUrl = `https://map.naver.com/v5/search/${encodeURIComponent(state.rows[toIdx].address)}`;
 
-  window.location.href = isMobile() ? deeplink : webUrl;
-  state.currentLeg += 1;
-});
+    window.location.href = isMobile() ? deeplink : webUrl;
+    state.currentLeg += 1;
+  });
+}
 
-// Share
+// Share: QR/Link + “카톡 안내 문구” (✅ 짧은 링크 k= 사용)
 if (shareBtn) {
-  shareBtn.addEventListener("click", () => {
+  shareBtn.addEventListener("click", async () => {
     setMsg("");
 
-    const url = buildShareUrl();
+    let url = "";
+    try {
+      url = await createShortShareUrl();
+    } catch (e) {
+      console.warn(e);
+      setMsg(e.message || "짧은 링크 생성 실패");
+      return;
+    }
+
     if (shareUrlEl) shareUrlEl.value = url;
     if (shareBox) shareBox.hidden = false;
 
@@ -632,12 +662,23 @@ ${url}
 
     if (shareMsgEl) shareMsgEl.value = guide;
 
+    // QR
     if (qrEl) {
       qrEl.innerHTML = "";
-      if (window.QRCode) {
-        new QRCode(qrEl, { text: url, width: 160, height: 160 });
-      } else {
-        qrEl.textContent = "QR 라이브러리가 로드되지 않았습니다.";
+      try {
+        if (window.QRCode) {
+          new QRCode(qrEl, {
+            text: url,
+            width: 240,
+            height: 240,
+            correctLevel: QRCode.CorrectLevel.L,
+          });
+        } else {
+          qrEl.textContent = "QR 라이브러리가 로드되지 않았습니다.";
+        }
+      } catch (e) {
+        console.warn(e);
+        qrEl.textContent = "QR 생성 실패(콘솔 로그 확인)";
       }
     }
   });
@@ -645,23 +686,26 @@ ${url}
 
 if (copyBtn) {
   copyBtn.addEventListener("click", async () => {
-    const ok = await copyText(shareUrlEl.value || "");
+    const ok = await copyText(shareUrlEl?.value || "");
     setMsg(ok ? "링크를 복사했습니다." : "복사 실패");
   });
 }
 
 if (copyMsgBtn) {
   copyMsgBtn.addEventListener("click", async () => {
-    const ok = await copyText(shareMsgEl.value || "");
+    const ok = await copyText(shareMsgEl?.value || "");
     setMsg(ok ? "안내 문구를 복사했습니다." : "복사 실패");
   });
 }
 
 // ===== Init =====
-(function init() {
+(async function init() {
   hideProgress();
 
-  const restored = readSharedDataFromUrl();
+  // ✅ k= 우선 복원 → 없으면 legacy data= 복원
+  let restored = await readSharedDataFromKey();
+  if (!restored) restored = readSharedDataFromUrlLegacy();
+
   if (restored) {
     state.rows = restored;
     setMsg("주소가 복원되었습니다. ‘경로 최적화’를 눌러 계산하세요.");
@@ -669,13 +713,19 @@ if (copyMsgBtn) {
 
   renderRows();
 
+  // 네이버 버튼 기본 비활성(계산 후 활성)
   if (naverBtn) {
     naverBtn.disabled = true;
     naverBtn.textContent = "경로 계산 후 활성화됩니다";
   }
 
+  // 카드 초기 숨김
+  updateRouteCard(null);
+
+  // 인앱이면 안내(✅ iOS는 인라인 토글)
   showInAppBannerIfNeeded();
 
+  // initMap callback이 못 도는 경우(네이버 SDK 로딩 지연 대비)
   setTimeout(() => {
     if (!nmap) ensureMap({ lat: 37.3828, lng: 126.6569 });
   }, 1000);
