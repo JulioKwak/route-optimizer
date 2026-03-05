@@ -15,6 +15,7 @@ const progressWrap = document.getElementById("progressWrap");
 const progressText = document.getElementById("progressText");
 const progressBarFill = document.getElementById("progressBarFill");
 
+// Total summary (✅ index.html에 있어야 함)
 const totalTimeEl = document.getElementById("totalTime");
 const totalDistEl = document.getElementById("totalDist");
 
@@ -29,7 +30,7 @@ const copyMsgBtn = document.getElementById("copyMsgBtn");
 
 // In-app banner
 const inAppBanner = document.getElementById("inAppBanner");
-const openExternalBtn = document.getElementById("openExternalBtn"); // (iOS에서는 hidden)
+const openExternalBtn = document.getElementById("openExternalBtn"); // Android에서만 사용 (iOS에선 hidden)
 const copyLinkBtn = document.getElementById("copyLinkBtn");
 const inAppHint = document.getElementById("inAppHint");
 
@@ -76,20 +77,6 @@ function hideProgress() {
   if (progressBarFill) progressBarFill.style.width = "0%";
 }
 
-function formatDuration(sec) {
-  sec = Math.max(0, Math.round(Number(sec || 0)));
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  if (h > 0) return `${h}시간 ${m}분`;
-  return `${m}분`;
-}
-
-function formatDistance(meters) {
-  meters = Math.max(0, Math.round(Number(meters || 0)));
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1)}km`;
-  return `${meters}m`;
-}
-
 function isMobile() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
@@ -111,8 +98,24 @@ function toBase64Url(str) {
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 function fromBase64Url(b64url) {
-  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((b64url.length + 3) % 4);
+  const b64 =
+    b64url.replace(/-/g, "+").replace(/_/g, "/") +
+    "===".slice((b64url.length + 3) % 4);
   return decodeURIComponent(escape(atob(b64)));
+}
+
+// 표시 포맷
+function formatDuration(sec) {
+  sec = Math.max(0, Math.round(Number(sec || 0)));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (h > 0) return `${h}시간 ${m}분`;
+  return `${m}분`;
+}
+function formatDistance(meters) {
+  meters = Math.max(0, Math.round(Number(meters || 0)));
+  if (meters >= 1000) return `${(meters / 1000).toFixed(1)}km`;
+  return `${meters}m`;
 }
 
 // Share URL (data 파라미터)
@@ -260,7 +263,9 @@ async function fetchRoutePath(orderedPoints) {
   } catch {
     routeData = { raw: text };
   }
-  if (!routeRes.ok || routeData.error) throw new Error(routeData.error || `directions api error (HTTP ${routeRes.status})`);
+  if (!routeRes.ok || routeData.error) {
+    throw new Error(routeData.error || `directions api error (HTTP ${routeRes.status})`);
+  }
   return routeData;
 }
 
@@ -345,7 +350,11 @@ function drawRouteOnMap(pathLatLng, orderedPoints) {
   });
 
   const linePath = pathLatLng.map((p) => new naver.maps.LatLng(p.lat, p.lng));
-  routeLine = new naver.maps.Polyline({ map: nmap, path: linePath, strokeWeight: 5 });
+  routeLine = new naver.maps.Polyline({
+    map: nmap,
+    path: linePath,
+    strokeWeight: 5,
+  });
 
   const bounds = new naver.maps.LatLngBounds();
   linePath.forEach((ll) => bounds.extend(ll));
@@ -354,8 +363,6 @@ function drawRouteOnMap(pathLatLng, orderedPoints) {
 
 // ===== Result =====
 async function renderResult(order) {
-  const routeData = await fetchRoutePath(orderedPoints);
-console.log("routeData =", routeData);
   resultList.innerHTML = "";
   order.forEach((idx, i) => {
     const r = state.rows[idx];
@@ -365,32 +372,35 @@ console.log("routeData =", routeData);
     resultList.appendChild(li);
   });
 
+  // 기본값 표시
+  if (totalTimeEl) totalTimeEl.textContent = "-";
+  if (totalDistEl) totalDistEl.textContent = "-";
+
   // 지도 경로 + 총 시간/거리
   try {
     showProgress("지도 경로 생성 중...", 98);
 
-    const orderedPoints = order.map(i => state.coords[i]);
+    const orderedPoints = order.map((i) => state.coords[i]);
     const routeData = await fetchRoutePath(orderedPoints);
 
-    // ✅ 여기서 총 예상시간/거리 표시 (routeData에 값이 있을 때만)
-    if (totalTimeEl) {
-      totalTimeEl.textContent =
-        routeData.totalDurationSec != null ? formatDuration(routeData.totalDurationSec) : "-";
+    // ✅ 콘솔에 routeData 찍기 (요청하신 디버깅용)
+    console.log("routeData =", routeData);
+
+    // ✅ 총 예상시간/거리 표시 (백엔드가 이 값을 내려줘야 표시됩니다)
+    if (totalTimeEl && routeData.totalDurationSec != null) {
+      totalTimeEl.textContent = formatDuration(routeData.totalDurationSec);
     }
-    if (totalDistEl) {
-      totalDistEl.textContent =
-        routeData.totalDistanceMeters != null ? formatDistance(routeData.totalDistanceMeters) : "-";
+    if (totalDistEl && routeData.totalDistanceMeters != null) {
+      totalDistEl.textContent = formatDistance(routeData.totalDistanceMeters);
     }
 
-    // 기존: path로 지도 선 그리기
+    // 지도 선 그리기
     if (Array.isArray(routeData.path) && routeData.path.length) {
       drawRouteOnMap(routeData.path, orderedPoints);
     }
   } catch (e) {
     console.warn(e);
     setMsg(e.message);
-
-    // 실패 시 표시 초기화(선택)
     if (totalTimeEl) totalTimeEl.textContent = "-";
     if (totalDistEl) totalDistEl.textContent = "-";
   }
@@ -477,7 +487,6 @@ function setIosGuideExpanded(expanded) {
   if (!iosGuideToggle || !iosGuidePanel) return;
   iosGuideToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
   iosGuidePanel.hidden = !expanded;
-  // 토글 문구
   iosGuideToggle.textContent = expanded ? "Safari에서 열기 안내 닫기" : "Safari에서 열기 안내 보기";
 }
 
@@ -498,13 +507,13 @@ function showInAppBannerIfNeeded() {
   if (isAndroid()) {
     if (inAppHint) inAppHint.textContent = "Android: 상단 “외부 브라우저로 열기(Chrome 권장)”를 사용하세요.";
     if (openExternalBtn) {
-      openExternalBtn.hidden = false;
+      openExternalBtn.hidden = false; // Android에서는 보여줄 수 있음(HTML에서 hidden이면 JS로 해제)
       openExternalBtn.textContent = "외부 브라우저로 열기";
     }
     if (iosGuideInline) iosGuideInline.hidden = true;
   } else if (isIOS()) {
     if (inAppHint) inAppHint.textContent = "iPhone: 공유(⬆︎) 버튼 → “Safari에서 열기”로 다시 열어주세요.";
-    // iOS에서는 회색 버튼 완전 숨김(HTML에 hidden 처리돼 있어도 안전하게 한 번 더)
+    // iOS에서는 회색 버튼 완전 숨김
     if (openExternalBtn) openExternalBtn.hidden = true;
 
     if (iosGuideInline) iosGuideInline.hidden = false;
@@ -525,7 +534,7 @@ function showInAppBannerIfNeeded() {
     openExternalBtn.onclick = async () => {
       const url = location.href;
 
-      // iOS는 숨김이라 여기 들어올 일이 거의 없지만, 안전 가드
+      // iOS는 숨김이라 사용 안 함(가드)
       if (isIOS()) return;
 
       if (isAndroid()) {
@@ -648,7 +657,6 @@ if (copyMsgBtn) {
   showInAppBannerIfNeeded();
 
   // initMap callback이 못 도는 경우(네이버 SDK 로딩 지연 대비)
-  // 1초 후 한 번 더 지도 초기화 시도
   setTimeout(() => {
     if (!nmap) ensureMap({ lat: 37.3828, lng: 126.6569 });
   }, 1000);
