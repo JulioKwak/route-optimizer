@@ -354,6 +354,8 @@ function drawRouteOnMap(pathLatLng, orderedPoints) {
 
 // ===== Result =====
 async function renderResult(order) {
+  const routeData = await fetchRoutePath(orderedPoints);
+console.log("routeData =", routeData);
   resultList.innerHTML = "";
   order.forEach((idx, i) => {
     const r = state.rows[idx];
