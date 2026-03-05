@@ -429,7 +429,7 @@ function showInAppBannerIfNeeded() {
   if (isAndroid()) {
     inAppHint.textContent = "Android: “외부 브라우저로 열기”를 누르면 Chrome으로 전환을 시도합니다.";
   } else if (isIOS()) {
-    inAppHint.textContent = "iPhone: 카톡 오른쪽 위 ‘⋯’ → ‘Safari에서 열기’를 권장합니다.";
+    inAppHint.textContent = "iPhone: 현재 화면 우측 하단에 공유버튼(⬆︎) 클릭 후 ‘Safari에서 열기’를 선택하세요. 없으면 ‘링크 복사’ 후 Safari에 붙여넣기 하시면 됩니다.";
     if (openExternalBtn) openExternalBtn.textContent = "Safari에서 열기 안내";
   } else {
     inAppHint.textContent = "인앱 브라우저에서는 일부 기능이 제한될 수 있습니다.";
@@ -462,7 +462,7 @@ function showInAppBannerIfNeeded() {
       if (isIOS()) {
         // iOS는 강제 불가 → 안내 + 링크 복사
         await copyText(url);
-        alert("카카오톡 오른쪽 위 ‘⋯’ 메뉴에서 ‘Safari에서 열기’를 선택해 주세요.\n(링크를 클립보드에 복사해두었습니다.)");
+        alert("현재 화면 우측 하단에 공유버튼(⬆︎) 클릭 후 ‘Safari에서 열기’를 선택하세요.\n(링크를 클립보드에 복사해두었습니다.)");
         return;
       }
 
