@@ -590,3 +590,57 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "No
 /* iOS 인앱에서는 회색 버튼(openExternalBtn) 숨김 */
 .iosHideExternalBtn #openExternalBtn { display: none !important; }
 
+/* ===== Map wrap + route card ===== */
+.mapWrap{
+  position: relative;
+}
+
+.routeCard{
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 220px;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(6px);
+  padding: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.10);
+}
+
+.routeCardTitle{
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.routeCardRow{
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 6px;
+}
+
+.routeCardLabel{
+  color: #666;
+  font-size: 12px;
+}
+
+/* ===== Legs ===== */
+.legBox{
+  margin-top: 12px;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.legBox h3{
+  margin: 0 0 10px 0;
+  font-size: 14px;
+}
+
+.legList{
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
