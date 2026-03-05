@@ -386,12 +386,25 @@ async function renderResult(order) {
     // ✅ 콘솔에 routeData 찍기 (요청하신 디버깅용)
     console.log("routeData =", routeData);
 
-    // ✅ 총 예상시간/거리 표시 (백엔드가 이 값을 내려줘야 표시됩니다)
-    if (totalTimeEl && routeData.totalDurationSec != null) {
-      totalTimeEl.textContent = formatDuration(routeData.totalDurationSec);
+    // ✅ 총 예상시간/거리 표시: total*가 없으면 summary에서 가져오기
+    const rawDuration =
+      routeData.totalDurationSec ??
+      routeData.summary?.duration ??
+      null;
+    
+    const rawDistance =
+      routeData.totalDistanceMeters ??
+      routeData.summary?.distance ??
+      null;
+    
+    // 네이버 응답 duration은 보통 ms라서(sec로 변환) 안전 처리
+    if (totalTimeEl && rawDuration != null) {
+      const sec = rawDuration > 100000 ? Math.round(rawDuration / 1000) : Math.round(rawDuration);
+      totalTimeEl.textContent = formatDuration(sec);
     }
-    if (totalDistEl && routeData.totalDistanceMeters != null) {
-      totalDistEl.textContent = formatDistance(routeData.totalDistanceMeters);
+    
+    if (totalDistEl && rawDistance != null) {
+      totalDistEl.textContent = formatDistance(rawDistance);
     }
 
     // 지도 선 그리기
