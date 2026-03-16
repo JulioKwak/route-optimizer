@@ -294,27 +294,47 @@ function dist2(a, b) {
   const dy = a.lng - b.lng;
   return dx * dx + dy * dy;
 }
+
 function optimizeOrderByNearest(points) {
   const n = points.length;
-  const visited = new Array(n).fill(false);
-  const order = [0];
-  visited[0] = true;
 
-  for (let step = 1; step < n; step++) {
-    const last = order[order.length - 1];
-    let best = -1,
-      bestD = Infinity;
-    for (let i = 1; i < n; i++) {
-      if (visited[i]) continue;
-      const d = dist2(points[last], points[i]);
+  // 점이 2개 이하이면 그대로
+  if (n <= 2) return Array.from({ length: n }, (_, i) => i);
+
+  const startIdx = 0;
+  const endIdx = n - 1;
+
+  const middle = [];
+  for (let i = 1; i < endIdx; i++) {
+    middle.push(i);
+  }
+
+  const order = [startIdx];
+  let current = startIdx;
+
+  while (middle.length > 0) {
+    let bestPos = -1;
+    let bestIdx = -1;
+    let bestD = Infinity;
+
+    for (let i = 0; i < middle.length; i++) {
+      const candidate = middle[i];
+      const d = dist2(points[current], points[candidate]);
       if (d < bestD) {
         bestD = d;
-        best = i;
+        bestIdx = candidate;
+        bestPos = i;
       }
     }
-    visited[best] = true;
-    order.push(best);
+
+    order.push(bestIdx);
+    current = bestIdx;
+    middle.splice(bestPos, 1);
   }
+
+  // 마지막 도착지는 고정
+  order.push(endIdx);
+
   return order;
 }
 
