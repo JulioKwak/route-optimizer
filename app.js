@@ -214,7 +214,16 @@ function renderRows() {
     customer.autocapitalize = "off";
     customer.spellcheck = false;
     customer.inputMode = "text";
-    customer.placeholder = idx === 0 ? "시작(고객번호)" : "고객번호";
+
+    const isStart = idx === 0;
+    const isEnd = idx === state.rows.length - 1;
+
+    customer.placeholder = isStart
+      ? "시작(고객번호)"
+      : isEnd
+        ? "도착(고객번호)"
+        : "고객번호";
+
     customer.value = r.customer;
     customer.addEventListener("input", (e) => (state.rows[idx].customer = e.target.value));
 
@@ -223,7 +232,13 @@ function renderRows() {
     address.autocapitalize = "off";
     address.spellcheck = false;
     address.inputMode = "text";
-    address.placeholder = idx === 0 ? "시작 주소(도로명 권장)" : "주소(도로명 권장)";
+
+    address.placeholder = isStart
+      ? "시작 주소(도로명 권장)"
+      : isEnd
+        ? "도착지 주소(도로명 권장)"
+        : "주소(도로명 권장)";
+
     address.value = r.address;
 
     if (state.errorMap[idx]) {
