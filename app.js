@@ -55,9 +55,8 @@ let state = {
   errorMap: {},
 };
 
-// ===== Map init callback (네이버 SDK callback=initMap) =====
+// ===== Map init callback =====
 window.initMap = function () {
-  // 초기 회색 방지용 기본 지도(송도 벤처로 82 근처)
   ensureMap({ lat: 37.3828, lng: 126.6569 });
 };
 
@@ -88,13 +87,19 @@ function isAndroid() {
 function isIOS() {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
-// 카톡/인앱 브라우저 감지(대부분 커버)
 function isInAppBrowser() {
   const ua = navigator.userAgent || "";
   return /KAKAOTALK|FBAN|FBAV|Instagram|Line|NAVER\(inapp\)/i.test(ua);
 }
 
-// base64url (legacy data=용)
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function toBase64Url(str) {
   const b64 = btoa(unescape(encodeURIComponent(str)));
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
@@ -104,7 +109,7 @@ function fromBase64Url(b64url) {
   return decodeURIComponent(escape(atob(b64)));
 }
 
-// ===== Share (short link via KV) =====
+// ===== Share =====
 function buildPayloadFromState() {
   return {
     v: 1,
@@ -153,7 +158,6 @@ async function readSharedDataFromKey() {
   return rows;
 }
 
-// legacy data= 복원 (하위호환)
 function readSharedDataFromUrlLegacy() {
   const u = new URL(location.href);
   const data = u.searchParams.get("data");
@@ -181,7 +185,6 @@ function validate() {
   return null;
 }
 
-// 동시성 제한
 async function mapLimit(items, limit, worker) {
   const results = new Array(items.length);
   let idx = 0;
@@ -245,6 +248,7 @@ function renderRows() {
       address.classList.add("err");
       address.title = state.errorMap[idx];
     }
+
     address.addEventListener("input", (e) => {
       state.rows[idx].address = e.target.value;
       if (state.errorMap[idx]) {
@@ -312,8 +316,6 @@ function dist2(a, b) {
 
 function optimizeOrderByNearest(points) {
   const n = points.length;
-
-  // 점이 2개 이하이면 그대로
   if (n <= 2) return Array.from({ length: n }, (_, i) => i);
 
   const startIdx = 0;
@@ -347,9 +349,7 @@ function optimizeOrderByNearest(points) {
     middle.splice(bestPos, 1);
   }
 
-  // 마지막 도착지는 고정
   order.push(endIdx);
-
   return order;
 }
 
@@ -376,8 +376,40 @@ function ensureMap(centerLatLng) {
   }
 }
 
-function markerHtml(num) {
-  return `<div class="numMarker">${num}</div>`;
+function markerHtml(type, label) {
+  if (type === "start") {
+    return `
+      <div class="flagMarker">
+        <div class="flagPole"></div>
+        <div class="flagCloth start">S</div>
+        <div class="flagBase"></div>
+      </div>
+    `;
+  }
+
+  if (type === "end") {
+    return `
+      <div class="flagMarker">
+        <div class="flagPole"></div>
+        <div class="flagCloth end">E</div>
+        <div class="flagBase"></div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="numPin">
+      <div class="numPinHead">${escapeHtml(label)}</div>
+      <div class="numPinTail"></div>
+    </div>
+  `;
+}
+
+function markerAnchorByType(type) {
+  if (type === "start" || type === "end") {
+    return new naver.maps.Point(12, 42);
+  }
+  return new naver.maps.Point(19, 43);
 }
 
 function drawRouteOnMap(pathLatLng, orderedPoints) {
@@ -389,26 +421,40 @@ function drawRouteOnMap(pathLatLng, orderedPoints) {
 
   clearMap();
 
-  // 숫자 마커
   orderedPoints.forEach((p, i) => {
+    const isStart = i === 0;
+    const isEnd = i === orderedPoints.length - 1;
+
+    const type = isStart ? "start" : isEnd ? "end" : "stop";
+    const label = isStart ? "S" : isEnd ? "E" : String(i);
+
     const m = new naver.maps.Marker({
       position: new naver.maps.LatLng(p.lat, p.lng),
       map: nmap,
-      title: String(i + 1),
+      title: isStart ? "시작점" : isEnd ? "도착점" : `경유지 ${i}`,
       icon: {
-        content: markerHtml(i + 1),
-        anchor: new naver.maps.Point(13, 13),
+        content: markerHtml(type, label),
+        anchor: markerAnchorByType(type),
       },
     });
+
     markers.push(m);
   });
 
   const linePath = pathLatLng.map((p) => new naver.maps.LatLng(p.lat, p.lng));
-  routeLine = new naver.maps.Polyline({ map: nmap, path: linePath, strokeWeight: 5 });
+  routeLine = new naver.maps.Polyline({
+    map: nmap,
+    path: linePath,
+    strokeWeight: 6,
+    strokeColor: "#2563eb",
+    strokeOpacity: 0.9,
+    strokeLineCap: "round",
+    strokeLineJoin: "round"
+  });
 
   const bounds = new naver.maps.LatLngBounds();
   linePath.forEach((ll) => bounds.extend(ll));
-  nmap.fitBounds(bounds, { top: 30, right: 30, bottom: 30, left: 30 });
+  nmap.fitBounds(bounds, { top: 50, right: 40, bottom: 50, left: 40 });
 }
 
 // ===== Format =====
@@ -446,33 +492,64 @@ function updateRouteCard(summary) {
   cardDistEl.textContent = formatDistance(dist);
 }
 
+function buildResultTypeClass(pos, total) {
+  if (pos === 0) return "start";
+  if (pos === total - 1) return "end";
+  return "stop";
+}
+
+function buildResultTypeText(pos, total) {
+  if (pos === 0) return "시작";
+  if (pos === total - 1) return "도착";
+  return `경유 ${pos}`;
+}
+
 async function renderResult(order) {
-  // 결과 리스트(✅ "1. 1." 중복 제거: 텍스트에 번호를 넣지 않음)
   if (resultList) resultList.innerHTML = "";
 
-  order.forEach((idx) => {
+  const total = order.length;
+
+  order.forEach((idx, pos) => {
     const r = state.rows[idx];
-    const label = idx === 0 ? "시작" : `지점 ${idx}`;
-    const li = document.createElement("li");
-    li.textContent = `[${label}] ${r.customer || "-"} / ${r.address}`;
-    resultList.appendChild(li);
+    const item = document.createElement("li");
+    item.className = "resultItem";
+
+    const typeClass = buildResultTypeClass(pos, total);
+    const typeText = buildResultTypeText(pos, total);
+    const customerText = (r.customer || "-").trim() || "-";
+    const addressText = (r.address || "-").trim() || "-";
+
+    item.innerHTML = `
+      <div class="resultCard">
+        <div class="resultBadgeWrap">
+          <div class="resultOrder">${pos + 1}</div>
+          <div class="resultType ${typeClass}">${typeText}</div>
+        </div>
+
+        <div class="resultBody">
+          <div class="resultTop">
+            <div class="resultCustomer">${escapeHtml(customerText)}</div>
+            <div class="resultOriginIdx">입력 순번 ${idx + 1}</div>
+          </div>
+          <div class="resultAddress">${escapeHtml(addressText)}</div>
+        </div>
+      </div>
+    `;
+    resultList.appendChild(item);
   });
 
   updateRouteCard(null);
 
-  // 지도 경로 + 총 시간/거리 카드
   try {
     showProgress("지도 경로 생성 중...", 98);
 
     const orderedPoints = order.map((i) => state.coords[i]);
     const routeData = await fetchRoutePath(orderedPoints);
 
-    // 지도 polyline
     if (Array.isArray(routeData.path) && routeData.path.length) {
       drawRouteOnMap(routeData.path, orderedPoints);
     }
 
-    // ✅ 총 이동시간/거리 (routeData.summary 기준)
     if (routeData && routeData.summary) {
       updateRouteCard(routeData.summary);
     } else {
@@ -575,7 +652,6 @@ function showInAppBannerIfNeeded() {
 
   inAppBanner.hidden = false;
 
-  // 공통: 링크 복사 버튼
   if (copyLinkBtn) {
     copyLinkBtn.onclick = async () => {
       const ok = await copyText(location.href);
@@ -598,17 +674,11 @@ function showInAppBannerIfNeeded() {
     if (iosGuideInline) iosGuideInline.hidden = true;
   } else if (isIOS()) {
     if (inAppHint) inAppHint.textContent = "iPhone: 아래 ‘Safari에서 열기 안내 보기’를 눌러 확인하세요.";
-    // iOS는 회색 버튼(외부브라우저 열기) 숨김 유지
     if (openExternalBtn) openExternalBtn.hidden = true;
-
-    // iOS 인라인 안내만 표시
     if (iosGuideInline) iosGuideInline.hidden = false;
 
     if (iosGuideToggle && iosGuidePanel) {
-      // 초기 접힘
       setIosGuideExpanded(false);
-
-      // 토글 클릭(접기/펼치기)
       iosGuideToggle.onclick = () => {
         const expanded = iosGuideToggle.getAttribute("aria-expanded") === "true";
         setIosGuideExpanded(!expanded);
@@ -669,7 +739,6 @@ if (naverBtn) {
   });
 }
 
-// Share: QR/Link + “카톡 안내 문구” (✅ 짧은 링크 k= 사용)
 if (shareBtn) {
   shareBtn.addEventListener("click", async () => {
     setMsg("");
@@ -697,7 +766,6 @@ ${url}
 
     if (shareMsgEl) shareMsgEl.value = guide;
 
-    // QR
     if (qrEl) {
       qrEl.innerHTML = "";
       try {
@@ -737,7 +805,6 @@ if (copyMsgBtn) {
 (async function init() {
   hideProgress();
 
-  // ✅ k= 우선 복원 → 없으면 legacy data= 복원
   let restored = await readSharedDataFromKey();
   if (!restored) restored = readSharedDataFromUrlLegacy();
 
@@ -748,19 +815,14 @@ if (copyMsgBtn) {
 
   renderRows();
 
-  // 네이버 버튼 기본 비활성(계산 후 활성)
   if (naverBtn) {
     naverBtn.disabled = true;
     naverBtn.textContent = "경로 계산 후 활성화됩니다";
   }
 
-  // 카드 초기 숨김
   updateRouteCard(null);
-
-  // 인앱이면 안내(✅ iOS는 인라인 토글)
   showInAppBannerIfNeeded();
 
-  // initMap callback이 못 도는 경우(네이버 SDK 로딩 지연 대비)
   setTimeout(() => {
     if (!nmap) ensureMap({ lat: 37.3828, lng: 126.6569 });
   }, 1000);
