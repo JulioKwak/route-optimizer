@@ -429,35 +429,40 @@ button:disabled,
 
 .routeCard{
   position:absolute;
-  top:14px;
-  right:14px;
-  width:220px;
-  border:1px solid rgba(148,163,184,0.18);
-  border-radius:18px;
+  top:12px;
+  right:12px;
+  width:176px;
+  border:1px solid rgba(148,163,184,0.16);
+  border-radius:16px;
   background: rgba(255,255,255,0.94);
   backdrop-filter: blur(8px);
-  padding:14px;
-  box-shadow:0 12px 28px rgba(15,23,42,0.10);
+  padding:12px 13px;
+  box-shadow:0 10px 22px rgba(15,23,42,0.08);
 }
 
 .routeCardTitle{
   font-weight:900;
-  margin-bottom:10px;
+  margin-bottom:8px;
   color:var(--title);
-  font-size:15px;
+  font-size:14px;
 }
 
 .routeCardRow{
   display:flex;
   justify-content:space-between;
   align-items:baseline;
-  margin-top:8px;
+  margin-top:7px;
 }
 
 .routeCardLabel{
   color:#64748b;
-  font-size:12px;
+  font-size:11px;
   font-weight:700;
+}
+
+#cardTime,
+#cardDist{
+  font-size:13px;
 }
 
 .midActions{
@@ -493,7 +498,7 @@ button:disabled,
   margin:0;
   padding:0;
   display:grid;
-  gap:12px;
+  gap:10px;
 }
 
 .resultItem{
@@ -505,7 +510,7 @@ button:disabled,
   grid-template-columns: 70px 1fr;
   gap:14px;
   align-items:start;
-  padding:16px;
+  padding:15px;
   border-radius:18px;
   border:1px solid rgba(148,163,184,0.16);
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
@@ -598,6 +603,38 @@ button:disabled,
   line-height:1.7;
   color:#475569;
   word-break:break-word;
+}
+
+.resultFlow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top:8px;
+  color:#6b7280;
+  font-size:12px;
+  font-weight:800;
+}
+
+.resultFlow::before,
+.resultFlow::after{
+  content:"";
+  height:1px;
+  flex:1;
+  background: linear-gradient(90deg, rgba(148,163,184,0), rgba(148,163,184,0.45), rgba(148,163,184,0));
+}
+
+.resultFlowArrow{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:24px;
+  height:24px;
+  border-radius:999px;
+  background: rgba(79,70,229,0.10);
+  color:#4f46e5;
+  font-size:14px;
+  line-height:1;
 }
 
 .note{
@@ -831,8 +868,16 @@ button:disabled,
 
 @media (max-width: 900px){
   .map{ height:420px; }
+
   .resultCard{
     grid-template-columns:60px 1fr;
+    gap:12px;
+    padding:14px;
+  }
+
+  .routeCard{
+    width:170px;
+    padding:11px 12px;
   }
 }
 
@@ -925,9 +970,23 @@ button:disabled,
   .routeCard{
     top:10px;
     right:10px;
-    width:190px;
-    padding:12px;
-    border-radius:16px;
+    width:154px;
+    padding:10px 11px;
+    border-radius:14px;
+  }
+
+  .routeCardTitle{
+    font-size:13px;
+    margin-bottom:7px;
+  }
+
+  .routeCardLabel{
+    font-size:10px;
+  }
+
+  #cardTime,
+  #cardDist{
+    font-size:12px;
   }
 
   .midActions{
@@ -938,19 +997,66 @@ button:disabled,
     width:100%;
   }
 
+  .resultCards{
+    gap:8px;
+  }
+
   .resultCard{
     grid-template-columns:1fr;
-    gap:12px;
+    gap:10px;
+    padding:12px;
+    border-radius:16px;
   }
 
   .resultBadgeWrap{
     flex-direction:row;
     align-items:center;
+    gap:8px;
+  }
+
+  .resultOrder{
+    width:36px;
+    height:36px;
+    border-radius:12px;
+    font-size:14px;
+  }
+
+  .resultType{
+    height:24px;
+    padding:0 8px;
+    font-size:11px;
   }
 
   .resultTop{
     flex-direction:column;
-    gap:8px;
+    gap:6px;
+    margin-bottom:4px;
+  }
+
+  .resultCustomer{
+    font-size:15px;
+  }
+
+  .resultOriginIdx{
+    font-size:11px;
+    padding:4px 7px;
+  }
+
+  .resultAddress{
+    font-size:13px;
+    line-height:1.55;
+  }
+
+  .resultFlow{
+    margin-top:6px;
+    font-size:11px;
+    gap:6px;
+  }
+
+  .resultFlowArrow{
+    width:20px;
+    height:20px;
+    font-size:12px;
   }
 
   .siteFooter{
