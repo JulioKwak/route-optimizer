@@ -120,8 +120,9 @@
         <section class="result panel">
           <div class="resultHeader">
             <h2>최적화 결과</h2>
+            <p class="resultSub">시작점과 도착점을 고정하고, 중간 지점을 가까운 순서로 정렬합니다.</p>
           </div>
-          <ol id="resultList"></ol>
+          <ol id="resultList" class="resultCards"></ol>
         </section>
 
         <section class="note panel">
@@ -145,7 +146,6 @@
     </footer>
   </div>
 
-  <!-- 앱 스타일 모달 -->
   <div class="modal-backdrop" id="appModalBackdrop" hidden>
     <div class="app-modal" id="appModal" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
       <div class="app-modal-header">
@@ -156,19 +156,14 @@
       <div class="app-modal-body" id="appModalMessage"></div>
 
       <div class="app-modal-actions">
-        <button type="button" class="btn btn-secondary" id="appModalCancelBtn" hidden>취소</button>
         <button type="button" class="btn btn-primary" id="appModalConfirmBtn">확인</button>
       </div>
     </div>
   </div>
 
-  <!-- 네이버 지도 JS SDK -->
   <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=ql4o2776tv&submodules=geocoder&callback=initMap"></script>
-
-  <!-- QR 생성 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
-  <!-- alert / confirm 모달 오버라이드 -->
   <script>
     (function () {
       const backdrop = document.getElementById("appModalBackdrop");
@@ -176,10 +171,7 @@
       const badgeEl = document.getElementById("appModalBadge");
       const titleEl = document.getElementById("appModalTitle");
       const msgEl = document.getElementById("appModalMessage");
-      const cancelBtn = document.getElementById("appModalCancelBtn");
       const confirmBtn = document.getElementById("appModalConfirmBtn");
-
-      let resolver = null;
 
       function nl2br(text) {
         return String(text || "").replace(/\n/g, "<br>");
@@ -189,147 +181,61 @@
         title = "안내",
         message = "",
         type = "info",
-        confirmText = "확인",
-        cancelText = "취소",
-        showCancel = false
+        confirmText = "확인"
       } = {}) {
-        return new Promise((resolve) => {
-          resolver = resolve;
+        modal.classList.remove("modal-info", "modal-success", "modal-warning", "modal-danger");
+        modal.classList.add(`modal-${type}`);
 
-          modal.classList.remove("modal-info", "modal-success", "modal-warning", "modal-danger");
-          modal.classList.add(`modal-${type}`);
+        const badgeMap = {
+          info: "알림",
+          success: "완료",
+          warning: "주의",
+          danger: "경고"
+        };
 
-          const badgeMap = {
-            info: "알림",
-            success: "완료",
-            warning: "주의",
-            danger: "경고"
-          };
+        badgeEl.textContent = badgeMap[type] || "알림";
+        titleEl.textContent = title;
+        msgEl.innerHTML = nl2br(message);
+        confirmBtn.textContent = confirmText;
 
-          badgeEl.textContent = badgeMap[type] || "알림";
-          titleEl.textContent = title;
-          msgEl.innerHTML = nl2br(message);
-
-          confirmBtn.textContent = confirmText;
-          cancelBtn.textContent = cancelText;
-          cancelBtn.hidden = !showCancel;
-
-          backdrop.hidden = false;
-          requestAnimationFrame(() => {
-            backdrop.classList.add("show");
-            modal.classList.add("show");
-          });
-
-          function close(result) {
-            backdrop.classList.remove("show");
-            modal.classList.remove("show");
-
-            setTimeout(() => {
-              backdrop.hidden = true;
-            }, 180);
-
-            document.removeEventListener("keydown", onKeyDown);
-            backdrop.removeEventListener("click", onBackdropClick);
-            confirmBtn.removeEventListener("click", onConfirm);
-            cancelBtn.removeEventListener("click", onCancel);
-
-            if (resolver) {
-              resolver(result);
-              resolver = null;
-            }
-          }
-
-          function onConfirm() {
-            close(true);
-          }
-
-          function onCancel() {
-            close(false);
-          }
-
-          function onBackdropClick(e) {
-            if (e.target === backdrop) {
-              close(showCancel ? false : true);
-            }
-          }
-
-          function onKeyDown(e) {
-            if (e.key === "Escape") {
-              close(showCancel ? false : true);
-            }
-          }
-
-          confirmBtn.addEventListener("click", onConfirm);
-          cancelBtn.addEventListener("click", onCancel);
-          backdrop.addEventListener("click", onBackdropClick);
-          document.addEventListener("keydown", onKeyDown);
+        backdrop.hidden = false;
+        requestAnimationFrame(() => {
+          backdrop.classList.add("show");
+          modal.classList.add("show");
         });
+
+        function close() {
+          backdrop.classList.remove("show");
+          modal.classList.remove("show");
+          setTimeout(() => {
+            backdrop.hidden = true;
+          }, 180);
+
+          confirmBtn.removeEventListener("click", close);
+          document.removeEventListener("keydown", onKeyDown);
+          backdrop.removeEventListener("click", onBackdropClick);
+        }
+
+        function onKeyDown(e) {
+          if (e.key === "Escape") close();
+        }
+
+        function onBackdropClick(e) {
+          if (e.target === backdrop) close();
+        }
+
+        confirmBtn.addEventListener("click", close);
+        document.addEventListener("keydown", onKeyDown);
+        backdrop.addEventListener("click", onBackdropClick);
       }
-
-      window.appAlert = function (message, title = "안내", type = "info") {
-        return openModal({
-          title,
-          message,
-          type,
-          confirmText: "확인",
-          showCancel: false
-        });
-      };
-
-      window.appConfirm = function (message, title = "확인", type = "warning") {
-        return openModal({
-          title,
-          message,
-          type,
-          confirmText: "확인",
-          cancelText: "취소",
-          showCancel: true
-        });
-      };
 
       window.alert = function (message) {
         openModal({
           title: "안내",
           message,
           type: "info",
-          confirmText: "확인",
-          showCancel: false
+          confirmText: "확인"
         });
-      };
-
-      window.confirm = function (message) {
-        const ok = window.prompt("__APP_CONFIRM__" + String(message ?? ""), "__APP_CONFIRM__");
-        return ok === "true";
-      };
-
-      const nativePrompt = window.prompt.bind(window);
-      window.prompt = function (message, defaultValue) {
-        if (defaultValue === "__APP_CONFIRM__" && typeof message === "string" && message.startsWith("__APP_CONFIRM__")) {
-          const realMessage = message.replace("__APP_CONFIRM__", "");
-          const result = window.__lastConfirmResult;
-          window.__lastConfirmResult = undefined;
-
-          openModal({
-            title: "확인",
-            message: realMessage,
-            type: "warning",
-            confirmText: "확인",
-            cancelText: "취소",
-            showCancel: true
-          }).then((v) => {
-            window.__lastConfirmResult = v ? "true" : "false";
-          });
-
-          const start = Date.now();
-          while (window.__lastConfirmResult === undefined) {
-            if (Date.now() - start > 30000) break;
-          }
-
-          const value = window.__lastConfirmResult;
-          window.__lastConfirmResult = undefined;
-          return value ?? "false";
-        }
-        return nativePrompt(message, defaultValue);
       };
     })();
   </script>
