@@ -1,9 +1,7 @@
 // app.js
-// ===== Config =====
 const MAX = 15;
 const CONCURRENCY = 4;
 
-// ===== DOM =====
 const rowsEl = document.getElementById("rows");
 const msgEl = document.getElementById("msg");
 
@@ -16,7 +14,6 @@ const progressWrap = document.getElementById("progressWrap");
 const progressText = document.getElementById("progressText");
 const progressBarFill = document.getElementById("progressBarFill");
 
-// Share
 const shareBtn = document.getElementById("shareBtn");
 const shareBox = document.getElementById("shareBox");
 const shareUrlEl = document.getElementById("shareUrl");
@@ -25,28 +22,23 @@ const qrEl = document.getElementById("qr");
 const shareMsgEl = document.getElementById("shareMsg");
 const copyMsgBtn = document.getElementById("copyMsgBtn");
 
-// In-app banner
 const inAppBanner = document.getElementById("inAppBanner");
 const openExternalBtn = document.getElementById("openExternalBtn");
 const copyLinkBtn = document.getElementById("copyLinkBtn");
 const inAppHint = document.getElementById("inAppHint");
 
-// iOS inline guide (toggle)
 const iosGuideInline = document.getElementById("iosGuideInline");
 const iosGuideToggle = document.getElementById("iosGuideToggle");
 const iosGuidePanel = document.getElementById("iosGuidePanel");
 
-// Map + Card
 const routeCard = document.getElementById("routeCard");
 const cardTimeEl = document.getElementById("cardTime");
 const cardDistEl = document.getElementById("cardDist");
 
-// Map state
 let nmap = null;
 let routeLine = null;
 let markers = [];
 
-// ===== State =====
 let state = {
   rows: [{ customer: "", address: "" }, { customer: "", address: "" }],
   optimized: null,
@@ -55,12 +47,10 @@ let state = {
   errorMap: {},
 };
 
-// ===== Map init callback =====
 window.initMap = function () {
   ensureMap({ lat: 37.3828, lng: 126.6569 });
 };
 
-// ===== Utils =====
 function setMsg(text = "") {
   if (msgEl) msgEl.textContent = text;
 }
@@ -109,7 +99,6 @@ function fromBase64Url(b64url) {
   return decodeURIComponent(escape(atob(b64)));
 }
 
-// ===== Share =====
 function buildPayloadFromState() {
   return {
     v: 1,
@@ -176,7 +165,6 @@ function readSharedDataFromUrlLegacy() {
   }
 }
 
-// ===== Validate =====
 function validate() {
   if (!state.rows[0].address.trim()) return "시작 주소를 입력해 주세요.";
   for (let i = 1; i < state.rows.length; i++) {
@@ -199,7 +187,6 @@ async function mapLimit(items, limit, worker) {
   return results;
 }
 
-// ===== UI: Rows =====
 function renderRows() {
   if (!rowsEl) return;
   rowsEl.innerHTML = "";
@@ -276,7 +263,6 @@ function renderRows() {
   });
 }
 
-// ===== API =====
 async function geocode(address) {
   const res = await fetch("/geo", {
     method: "POST",
@@ -307,7 +293,6 @@ async function fetchRoutePath(orderedPoints) {
   return routeData;
 }
 
-// ===== Optimize =====
 function dist2(a, b) {
   const dx = a.lat - b.lat;
   const dy = a.lng - b.lng;
@@ -353,7 +338,6 @@ function optimizeOrderByNearest(points) {
   return order;
 }
 
-// ===== Map =====
 function clearMap() {
   if (routeLine) {
     routeLine.setMap(null);
@@ -457,7 +441,6 @@ function drawRouteOnMap(pathLatLng, orderedPoints) {
   nmap.fitBounds(bounds, { top: 50, right: 40, bottom: 50, left: 40 });
 }
 
-// ===== Format =====
 function formatDistance(meters) {
   if (meters == null || !isFinite(meters)) return "-";
   if (meters >= 1000) return `${(meters / 1000).toFixed(1)}km`;
@@ -473,7 +456,6 @@ function formatDuration(sec) {
   return `${m}분`;
 }
 
-// ===== Result =====
 function updateRouteCard(summary) {
   if (!routeCard || !cardTimeEl || !cardDistEl) return;
 
@@ -519,6 +501,15 @@ async function renderResult(order) {
     const customerText = (r.customer || "-").trim() || "-";
     const addressText = (r.address || "-").trim() || "-";
 
+    const flowHtml = pos < total - 1
+      ? `
+        <div class="resultFlow">
+          <span class="resultFlowArrow">↓</span>
+          <span>다음 이동</span>
+        </div>
+      `
+      : "";
+
     item.innerHTML = `
       <div class="resultCard">
         <div class="resultBadgeWrap">
@@ -534,6 +525,7 @@ async function renderResult(order) {
           <div class="resultAddress">${escapeHtml(addressText)}</div>
         </div>
       </div>
+      ${flowHtml}
     `;
     resultList.appendChild(item);
   });
@@ -562,7 +554,6 @@ async function renderResult(order) {
   }
 }
 
-// ===== Main Optimize Runner =====
 async function runOptimize() {
   setMsg("");
   hideProgress();
@@ -614,7 +605,6 @@ async function runOptimize() {
   }
 }
 
-// ===== External browser helpers =====
 function makeChromeIntentUrl(url) {
   const u = new URL(url);
   const hostPath = (u.host + u.pathname).replace(/^\//, "");
@@ -638,7 +628,6 @@ async function copyText(text) {
   }
 }
 
-// ===== In-app banner + iOS inline guide =====
 function setIosGuideExpanded(expanded) {
   if (!iosGuideToggle || !iosGuidePanel) return;
   iosGuideToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
@@ -695,12 +684,12 @@ function showInAppBannerIfNeeded() {
   }
 }
 
-// ===== Events =====
 if (addBtn) {
   addBtn.addEventListener("click", () => {
     setMsg("");
     if (state.rows.length >= MAX) return setMsg(`최대 ${MAX}건까지 추가할 수 있습니다.`);
     state.rows.push({ customer: "", address: "" });
+    state.errorMap = {};
     renderRows();
   });
 }
@@ -801,7 +790,6 @@ if (copyMsgBtn) {
   });
 }
 
-// ===== Init =====
 (async function init() {
   hideProgress();
 
