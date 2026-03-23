@@ -7,141 +7,332 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="layout">
-    <aside class="left">
-      <div class="titleRow">
-        <img src="logo.png" alt="logo" class="logo" />
-        <h1 class="title">무선국 원격검침시설 유지보수 작업 경로 최적화</h1>
-      </div>
-
-      <p class="hint">첫 번째 행은 시작지점, 마지막 행은 도착지점입니다. 중간 지점만 최적화됩니다.</p>
-
-      <div id="rows"></div>
-
-      <div class="actions">
-        <button id="addBtn" type="button">+ 추가</button>
-        <button id="optBtn" type="button">경로 최적화</button>
-        <button id="shareBtn" type="button">모바일로 보내기(QR/링크)</button>
-      </div>
-
-      <div id="progressWrap" class="progressWrap" hidden>
-        <div class="spinner" aria-hidden="true"></div>
-        <div>
-          <div id="progressText" class="progressText">처리 중...</div>
-          <div class="progressBar"><div id="progressBarFill" class="progressBarFill"></div></div>
-        </div>
-      </div>
-
-      <div id="msg" class="msg"></div>
-
-      <!-- 공유 박스 -->
-      <div id="shareBox" class="shareBox" hidden>
-        <div class="shareTitle">모바일로 보내기</div>
-
-        <div class="shareRow">
-          <input id="shareUrl" readonly />
-          <button id="copyBtn" type="button">링크 복사</button>
-        </div>
-
-        <div id="qr" class="qr"></div>
-
-        <div class="shareTitle">카톡용 안내 문구</div>
-        <textarea id="shareMsg" class="shareMsg" readonly></textarea>
-        <button id="copyMsgBtn" class="copyMsgBtn" type="button">안내 문구 복사</button>
-      </div>
-
-      <!-- 인앱(카톡 등) 안내 배너 -->
-      <div id="inAppBanner" class="inAppBanner" hidden>
-        <div class="inAppTitle">인앱 브라우저 안내</div>
-        <div id="inAppHint" class="inAppHint"></div>
-
-        <!-- iOS 안내: 파란 글씨 토글(접기/펼치기)로만 컨트롤 -->
-        <div id="iosGuideInline" class="iosGuideInline" hidden>
-          <button
-            id="iosGuideToggle"
-            type="button"
-            class="iosGuideToggle"
-            aria-expanded="false"
-          >
-            Safari에서 열기 안내 보기
-          </button>
-
-          <div id="iosGuidePanel" class="iosGuidePanel" hidden>
-            <img
-              src="ios-safari-guide.png"
-              alt="Safari에서 열기 안내"
-              class="iosGuideImg"
-              loading="lazy"
-            />
-            <div class="iosGuideHint">
-              화면의 공유(⬆︎) 버튼을 눌러 “Safari에서 열기”를 선택하세요.
+  <div class="pageShell">
+    <div class="layout">
+      <aside class="left">
+        <header class="appHeader">
+          <div class="titleRow">
+            <img src="logo.png" alt="logo" class="logo" />
+            <div class="titleBlock">
+              <div class="eyebrow">RAPA Smart Field</div>
+              <h1 class="title">무선국 원격검침시설 유지보수 작업 경로 최적화</h1>
+              <p class="subTitle">현장 주소 입력 · 경로 최적화 · 모바일 연동 · 내비게이션 실행</p>
             </div>
           </div>
-        </div>
+        </header>
 
-        <!-- 공통 버튼: 링크 복사만 남김 -->
-        <div class="inAppBtns">
-          <!-- Android에서만 사용(기본 hidden) -->
-          <button id="openExternalBtn" type="button" hidden>외부 브라우저로 열기</button>
-          <button id="copyLinkBtn" type="button">링크 복사</button>
-        </div>
-      </div>
-    </aside>
+        <section class="panel">
+          <p class="hint">첫 번째 행은 시작지점, 마지막 행은 도착지점입니다. 중간 지점만 최적화됩니다.</p>
 
-    <main class="right">
-      <div class="mapWrap">
-        <div id="map" class="map"></div>
+          <div id="rows"></div>
 
-        <!-- 지도 우측 카드 -->
-        <div id="routeCard" class="routeCard" hidden>
-          <div class="routeCardTitle">총 이동 예상</div>
-          <div class="routeCardRow">
-            <span class="routeCardLabel">시간</span>
-            <b id="cardTime">-</b>
+          <div class="actions">
+            <button id="addBtn" type="button" class="btn btn-secondary">+ 추가</button>
+            <button id="optBtn" type="button" class="btn btn-primary">경로 최적화</button>
+            <button id="shareBtn" type="button" class="btn btn-secondary">모바일로 보내기(QR/링크)</button>
           </div>
-          <div class="routeCardRow">
-            <span class="routeCardLabel">거리</span>
-            <b id="cardDist">-</b>
+
+          <div id="progressWrap" class="progressWrap" hidden>
+            <div class="spinner" aria-hidden="true"></div>
+            <div>
+              <div id="progressText" class="progressText">처리 중...</div>
+              <div class="progressBar">
+                <div id="progressBarFill" class="progressBarFill"></div>
+              </div>
+            </div>
           </div>
+
+          <div id="msg" class="msg"></div>
+        </section>
+
+        <section id="shareBox" class="shareBox panel" hidden>
+          <div class="sectionTitle">모바일로 보내기</div>
+
+          <div class="shareRow">
+            <input id="shareUrl" readonly />
+            <button id="copyBtn" type="button" class="btn btn-secondary">링크 복사</button>
+          </div>
+
+          <div id="qr" class="qr"></div>
+
+          <div class="sectionTitle sectionTitleSpacing">카톡용 안내 문구</div>
+          <textarea id="shareMsg" class="shareMsg" readonly></textarea>
+          <button id="copyMsgBtn" class="copyMsgBtn btn btn-primary" type="button">안내 문구 복사</button>
+        </section>
+
+        <section id="inAppBanner" class="inAppBanner panel panel-warning" hidden>
+          <div class="inAppTitle">인앱 브라우저 안내</div>
+          <div id="inAppHint" class="inAppHint"></div>
+
+          <div id="iosGuideInline" class="iosGuideInline" hidden>
+            <button
+              id="iosGuideToggle"
+              type="button"
+              class="iosGuideToggle"
+              aria-expanded="false"
+            >
+              Safari에서 열기 안내 보기
+            </button>
+
+            <div id="iosGuidePanel" class="iosGuidePanel" hidden>
+              <img
+                src="ios-safari-guide.png"
+                alt="Safari에서 열기 안내"
+                class="iosGuideImg"
+                loading="lazy"
+              />
+              <div class="iosGuideHint">
+                화면의 공유(⬆︎) 버튼을 눌러 “Safari에서 열기”를 선택하세요.
+              </div>
+            </div>
+          </div>
+
+          <div class="inAppBtns">
+            <button id="openExternalBtn" type="button" class="btn btn-secondary" hidden>외부 브라우저로 열기</button>
+            <button id="copyLinkBtn" type="button" class="btn btn-primary">링크 복사</button>
+          </div>
+        </section>
+      </aside>
+
+      <main class="right">
+        <section class="mapPanel">
+          <div class="mapWrap">
+            <div id="map" class="map"></div>
+
+            <div id="routeCard" class="routeCard" hidden>
+              <div class="routeCardTitle">총 이동 예상</div>
+              <div class="routeCardRow">
+                <span class="routeCardLabel">시간</span>
+                <b id="cardTime">-</b>
+              </div>
+              <div class="routeCardRow">
+                <span class="routeCardLabel">거리</span>
+                <b id="cardDist">-</b>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="midActions">
+          <button id="naverBtn" type="button" class="btn btn-primary" disabled>네이버 지도 열기(다음 목적지)</button>
+        </div>
+
+        <section class="result panel">
+          <div class="resultHeader">
+            <h2>최적화 결과</h2>
+          </div>
+          <ol id="resultList"></ol>
+        </section>
+
+        <section class="note panel">
+          PC에서 주소 입력 → “모바일로 보내기(QR/링크)”로 휴대폰에서 열고,
+          모바일에서 “경로 최적화” 후 “네이버 지도 열기(다음 목적지)”로 내비게이션을 실행하세요.
+        </section>
+      </main>
+    </div>
+
+    <footer class="siteFooter">
+      <div class="footerInner">
+        <div class="footerLine">
+          <span class="footerLabel">Developer</span>
+          <span class="footerValue">곽준호 (Julio Kwak)</span>
+        </div>
+        <div class="footerLine">
+          <span class="footerLabel">Affiliation</span>
+          <span class="footerValue">한국전파진흥협회 (Korea Radio Promotion Association)</span>
         </div>
       </div>
-
-      <!-- 버튼은 지도와 결과 사이에 -->
-      <div class="midActions">
-        <button id="naverBtn" type="button" disabled>네이버 지도 열기(다음 목적지)</button>
-      </div>
-
-      <div class="result">
-        <h2>최적화 결과</h2>
-        <ol id="resultList"></ol>
-      </div>
-
-      <div class="note">
-        PC에서 주소 입력 → “모바일로 보내기(QR/링크)”로 휴대폰에서 열고,
-        모바일에서 “경로 최적화” 후 “네이버 지도 열기(다음 목적지)”로 내비게이션을 실행하세요.
-      </div>
-
-    </main>
+    </footer>
   </div>
 
-  <footer class="siteFooter">
-    <div class="footerInner">
-      <div class="footerLine">
-        <span class="footerLabel">Developer</span>
-        <span class="footerValue">곽준호 (Julio Kwak)</span>
+  <!-- 앱 스타일 모달 -->
+  <div class="modal-backdrop" id="appModalBackdrop" hidden>
+    <div class="app-modal" id="appModal" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+      <div class="app-modal-header">
+        <div class="app-modal-badge" id="appModalBadge">알림</div>
+        <h3 id="appModalTitle">안내</h3>
       </div>
-      <div class="footerLine">
-        <span class="footerLabel">Affiliation</span>
-        <span class="footerValue">한국전파진흥협회 (Korea Radio Promotion Association)</span>
+
+      <div class="app-modal-body" id="appModalMessage"></div>
+
+      <div class="app-modal-actions">
+        <button type="button" class="btn btn-secondary" id="appModalCancelBtn" hidden>취소</button>
+        <button type="button" class="btn btn-primary" id="appModalConfirmBtn">확인</button>
       </div>
     </div>
-  </footer>
+  </div>
 
   <!-- 네이버 지도 JS SDK -->
   <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=ql4o2776tv&submodules=geocoder&callback=initMap"></script>
 
-  <!-- QR 생성 라이브러리(꼭 필요) -->
+  <!-- QR 생성 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <!-- alert / confirm 모달 오버라이드 -->
+  <script>
+    (function () {
+      const backdrop = document.getElementById("appModalBackdrop");
+      const modal = document.getElementById("appModal");
+      const badgeEl = document.getElementById("appModalBadge");
+      const titleEl = document.getElementById("appModalTitle");
+      const msgEl = document.getElementById("appModalMessage");
+      const cancelBtn = document.getElementById("appModalCancelBtn");
+      const confirmBtn = document.getElementById("appModalConfirmBtn");
+
+      let resolver = null;
+
+      function nl2br(text) {
+        return String(text || "").replace(/\n/g, "<br>");
+      }
+
+      function openModal({
+        title = "안내",
+        message = "",
+        type = "info",
+        confirmText = "확인",
+        cancelText = "취소",
+        showCancel = false
+      } = {}) {
+        return new Promise((resolve) => {
+          resolver = resolve;
+
+          modal.classList.remove("modal-info", "modal-success", "modal-warning", "modal-danger");
+          modal.classList.add(`modal-${type}`);
+
+          const badgeMap = {
+            info: "알림",
+            success: "완료",
+            warning: "주의",
+            danger: "경고"
+          };
+
+          badgeEl.textContent = badgeMap[type] || "알림";
+          titleEl.textContent = title;
+          msgEl.innerHTML = nl2br(message);
+
+          confirmBtn.textContent = confirmText;
+          cancelBtn.textContent = cancelText;
+          cancelBtn.hidden = !showCancel;
+
+          backdrop.hidden = false;
+          requestAnimationFrame(() => {
+            backdrop.classList.add("show");
+            modal.classList.add("show");
+          });
+
+          function close(result) {
+            backdrop.classList.remove("show");
+            modal.classList.remove("show");
+
+            setTimeout(() => {
+              backdrop.hidden = true;
+            }, 180);
+
+            document.removeEventListener("keydown", onKeyDown);
+            backdrop.removeEventListener("click", onBackdropClick);
+            confirmBtn.removeEventListener("click", onConfirm);
+            cancelBtn.removeEventListener("click", onCancel);
+
+            if (resolver) {
+              resolver(result);
+              resolver = null;
+            }
+          }
+
+          function onConfirm() {
+            close(true);
+          }
+
+          function onCancel() {
+            close(false);
+          }
+
+          function onBackdropClick(e) {
+            if (e.target === backdrop) {
+              close(showCancel ? false : true);
+            }
+          }
+
+          function onKeyDown(e) {
+            if (e.key === "Escape") {
+              close(showCancel ? false : true);
+            }
+          }
+
+          confirmBtn.addEventListener("click", onConfirm);
+          cancelBtn.addEventListener("click", onCancel);
+          backdrop.addEventListener("click", onBackdropClick);
+          document.addEventListener("keydown", onKeyDown);
+        });
+      }
+
+      window.appAlert = function (message, title = "안내", type = "info") {
+        return openModal({
+          title,
+          message,
+          type,
+          confirmText: "확인",
+          showCancel: false
+        });
+      };
+
+      window.appConfirm = function (message, title = "확인", type = "warning") {
+        return openModal({
+          title,
+          message,
+          type,
+          confirmText: "확인",
+          cancelText: "취소",
+          showCancel: true
+        });
+      };
+
+      window.alert = function (message) {
+        openModal({
+          title: "안내",
+          message,
+          type: "info",
+          confirmText: "확인",
+          showCancel: false
+        });
+      };
+
+      window.confirm = function (message) {
+        const ok = window.prompt("__APP_CONFIRM__" + String(message ?? ""), "__APP_CONFIRM__");
+        return ok === "true";
+      };
+
+      const nativePrompt = window.prompt.bind(window);
+      window.prompt = function (message, defaultValue) {
+        if (defaultValue === "__APP_CONFIRM__" && typeof message === "string" && message.startsWith("__APP_CONFIRM__")) {
+          const realMessage = message.replace("__APP_CONFIRM__", "");
+          const result = window.__lastConfirmResult;
+          window.__lastConfirmResult = undefined;
+
+          openModal({
+            title: "확인",
+            message: realMessage,
+            type: "warning",
+            confirmText: "확인",
+            cancelText: "취소",
+            showCancel: true
+          }).then((v) => {
+            window.__lastConfirmResult = v ? "true" : "false";
+          });
+
+          const start = Date.now();
+          while (window.__lastConfirmResult === undefined) {
+            if (Date.now() - start > 30000) break;
+          }
+
+          const value = window.__lastConfirmResult;
+          window.__lastConfirmResult = undefined;
+          return value ?? "false";
+        }
+        return nativePrompt(message, defaultValue);
+      };
+    })();
+  </script>
 
   <script src="app.js"></script>
 </body>
